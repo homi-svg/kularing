@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>쿨라(Kula) 링 시뮬레이터 - 고정 좌표 및 빈자리 탐색</title>
+    <title>쿨라(Kula) 링 모바일 최적화 시뮬레이터 - 원형 궤도 유지</title>
     <style>
         body { 
             font-family: 'Malgun Gothic', sans-serif; 
@@ -92,7 +92,7 @@
             border: 3px solid #1a661a; border-radius: 50% 60% 50% 70% / 60% 50% 70% 50%;
             display: flex; align-items: center; justify-content: center; 
             font-weight: bold; font-size: 14px; color: white; text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
-            box-shadow: 3px 5px 15px rgba(0,0,0,0.3); transition: transform 0.3s ease; z-index: 10;
+            box-shadow: 3px 5px 15px rgba(0,0,0,0.3); transition: all 0.8s ease; z-index: 10;
         }
 
         /* --- 가라앉은 섬 흔적 --- */
@@ -103,7 +103,7 @@
             display: flex; align-items: center; justify-content: center; 
             font-weight: bold; font-size: 14px; color: rgba(255, 255, 255, 0.5); 
             text-decoration: line-through; box-shadow: inset 2px 3px 10px rgba(0,0,0,0.3); 
-            z-index: 4; pointer-events: none; 
+            z-index: 4; pointer-events: none; transition: all 0.8s ease; 
         }
 
         .item { position: absolute; width: 50px; height: 35px; cursor: default; z-index: 50; display: flex; align-items: center; justify-content: center; transition: left 1s ease-in-out, top 1s ease-in-out; }
@@ -206,13 +206,17 @@
 <div id="ocean-map"></div>
 
 <script>
+    // --- 설정 ---
+    // 오차 범위를 약간 줄여서 원형 궤도를 더 선명하게 보이도록 함
+    const getIrregular = () => (Math.random() - 0.5) * 40; 
+    
     let currentProject = "";
     let projectList = [];
     let islands = [];
     let sunkenIslands = []; 
     let state = {};
     let centerX, centerY, safeWidth, safeHeight;
-    const ISLAND_SIZE = 80; // 섬의 크기 (충돌 계산용)
+    let baseRadiusX, baseRadiusY;
 
     function saveProjectData() {
         if (!currentProject) return;
@@ -225,7 +229,7 @@
     window.addEventListener('beforeunload', () => { saveProjectData(); });
 
     function initProjectManager() {
-        updateDimensions(); // 화면 크기 먼저 계산
+        updateDimensions(); 
         const savedList = localStorage.getItem('kula_project_list');
         if (savedList) { projectList = JSON.parse(savedList); } 
         else { projectList = ["기본 바다"]; }
@@ -289,29 +293,21 @@
             sunkenIslands = parsed.sunkenIslands || [];
             state = parsed.state;
             
-            // 구버전(비율/각도) 데이터 호환성 보정: 절대 x, y 좌표가 없는 구버전 섬에 좌표 부여
-            islands.forEach((is, idx) => {
-                if(is.x === undefined) {
-                    const angle = (idx / islands.length) * (2 * Math.PI) - (Math.PI / 2);
-                    const baseRadius = Math.min(safeWidth, safeHeight) * 0.4;
-                    is.x = centerX + (baseRadius + is.offsetX) * Math.cos(angle);
-                    is.y = centerY + (baseRadius + is.offsetY) * Math.sin(angle);
-                }
+            // 구버전(절대 좌표) 데이터 호환성 보정: 절대 좌표를 지우고 오프셋만 남겨 재배치 허용
+            islands.forEach((is) => {
+                if(is.x !== undefined) { delete is.x; delete is.y; }
             });
             sunkenIslands.forEach((sunk) => {
-                if(sunk.x === undefined && sunk.ratio !== undefined) {
-                     const angle = (sunk.ratio * 2 * Math.PI) - (Math.PI / 2);
-                     const baseRadius = Math.min(safeWidth, safeHeight) * 0.4;
-                     sunk.x = centerX + (baseRadius + sunk.offsetX) * Math.cos(angle);
-                     sunk.y = centerY + (baseRadius + sunk.offsetY) * Math.sin(angle);
-                }
+                if(sunk.x !== undefined) { delete sunk.x; delete sunk.y; }
             });
 
         } else {
-            // 새 프로젝트 기본 세팅 (고정 좌표 발급)
-            islands = [];
+            islands = [
+                { name: '키리위나', offsetX: getIrregular(), offsetY: getIrregular() },
+                { name: '도부', offsetX: getIrregular(), offsetY: getIrregular() },
+                { name: '투비투비', offsetX: getIrregular(), offsetY: getIrregular() }
+            ];
             sunkenIslands = [];
-            ['키리위나', '도부', '투비투비'].forEach(islandName => generateAndPushIsland(islandName));
             state = {
                 cw: { pos: 0, log: [], name: '술라바' },
                 ccw: { pos: 1, log: [], name: '음왈리' }
@@ -339,67 +335,39 @@
         
         centerX = pSide + (safeWidth / 2); 
         centerY = pTop + (safeHeight / 2);
-    }
-
-    // --- ★ 절대 좌표 생성 및 충돌 회피 핵심 로직 ★ ---
-    function getDistance(p1, p2) {
-        return Math.sqrt(Math.pow(p1.x - p2.x, 2) + Math.pow(p1.y - p2.y, 2));
-    }
-
-    // 특정 좌표가 기존 섬(활성+침몰)과 겹치는지 검사
-    function isOverlapping(x, y) {
-        const minDistance = ISLAND_SIZE + 20; // 섬 크기 + 약간의 여백
         
-        for (let is of islands) {
-            if (getDistance({x, y}, {x: is.x, y: is.y}) < minDistance) return true;
-        }
-        for (let sunk of sunkenIslands) {
-            if (getDistance({x, y}, {x: sunk.x, y: sunk.y}) < minDistance) return true;
-        }
-        return false;
-    }
-
-    // 빈자리를 찾아 절대 좌표가 포함된 섬 객체 생성
-    function generateAndPushIsland(name) {
-        let newX, newY;
-        let attempts = 0;
-        const maxAttempts = 100;
+        // 타원형 궤도를 위해 X, Y 반지름 분리
+        baseRadiusX = safeWidth * 0.4; 
+        baseRadiusY = safeHeight * 0.4;
         
-        // 화면 중앙부터 나선형으로 탐색하여 빈자리 찾기
-        let radius = 80; // 시작 탐색 반경
-        let angle = Math.random() * Math.PI * 2; // 랜덤한 방향에서 시작
-
-        do {
-            newX = centerX + radius * Math.cos(angle);
-            newY = centerY + radius * Math.sin(angle);
-            
-            // 안전 영역(화면 밖)을 벗어나면 안쪽으로 유도
-            if (newX < centerX - safeWidth/2 + ISLAND_SIZE || newX > centerX + safeWidth/2 - ISLAND_SIZE ||
-                newY < centerY - safeHeight/2 + ISLAND_SIZE || newY > centerY + safeHeight/2 - ISLAND_SIZE) {
-                radius = 80; // 반경 리셋
-                angle += Math.PI / 4; // 각도 크게 변경
-            }
-
-            angle += 0.5; // 나선형으로 회전
-            radius += 5;  // 밖으로 퍼져나감
-            attempts++;
-
-        } while (isOverlapping(newX, newY) && attempts < maxAttempts);
-
-        islands.push({ name: name, x: newX, y: newY });
+        if(baseRadiusX < 80) baseRadiusX = 80;
+        if(baseRadiusY < 80) baseRadiusY = 80;
     }
 
-    function addIsland() {
-        const input = document.getElementById('island-name');
-        const name = input.value || `섬 ${islands.length+1}`;
-        generateAndPushIsland(name);
-        input.value = ''; saveProjectData(); render();
+    // --- ★ 동적 궤도 배치 로직 ★ ---
+    // 전체 섬(활성+침몰)을 하나의 궤도 위에 일정한 간격으로 배치
+    function calculateCoordinate(index, totalIslandsLength, offsetX, offsetY) {
+        // 섬의 총 개수에 따라 각도를 균등하게 나눔
+        const angle = (index / totalIslandsLength) * (2 * Math.PI) - (Math.PI / 2);
+        return {
+            x: centerX + (baseRadiusX + offsetX) * Math.cos(angle),
+            y: centerY + (baseRadiusY + offsetY) * Math.sin(angle)
+        };
     }
-    // ------------------------------------------------
 
-    // 렌더링용: 이제 절대 좌표 x, y를 그대로 반환
     function getIslandCenter(index) {
-        return { x: islands[index].x, y: islands[index].y };
+        // 활성화된 섬들의 위치 (침몰 섬 포함된 전체 배열 길이 기준)
+        const totalLen = islands.length + sunkenIslands.length;
+        // 활성화된 섬은 앞쪽 인덱스를 차지함
+        return calculateCoordinate(index, totalLen, islands[index].offsetX, islands[index].offsetY);
+    }
+    
+    function getSunkenIslandCenter(index) {
+        // 침몰한 섬들의 위치
+        const totalLen = islands.length + sunkenIslands.length;
+        // 침몰한 섬은 뒤쪽 인덱스(islands.length 이후)를 차지함
+        const targetIndex = islands.length + index;
+        return calculateCoordinate(targetIndex, totalLen, sunkenIslands[index].offsetX, sunkenIslands[index].offsetY);
     }
 
     function getItemPoint(key, index) {
@@ -412,32 +380,33 @@
         updateDropdown();
         const map = document.getElementById('ocean-map');
         
-        // 1. 활성화된 섬 그리기 (절대 좌표 사용)
+        // 1. 활성화된 섬 그리기 (위치 재계산)
         islands.forEach((is, i) => {
             let div = document.getElementById(`island-${i}`);
             if(!div) { div = document.createElement('div'); div.id = `island-${i}`; div.className = 'island'; map.appendChild(div); }
             div.innerText = is.name;
-            div.style.left = `${is.x - 40}px`; div.style.top = `${is.y - 40}px`; 
+            const c = getIslandCenter(i);
+            div.style.left = `${c.x - 40}px`; div.style.top = `${c.y - 40}px`; 
         });
         document.querySelectorAll('.island').forEach(el => { if(parseInt(el.id.split('-')[1]) >= islands.length) el.remove(); });
 
-        // 2. 가라앉은 섬 흔적 그리기 (절대 좌표 사용)
-        document.querySelectorAll('.sunken-island').forEach(el => el.remove());
-        sunkenIslands.forEach((sunk) => {
-            let div = document.createElement('div');
-            div.className = 'sunken-island';
+        // 2. 가라앉은 섬 흔적 그리기 (위치 재계산)
+        sunkenIslands.forEach((sunk, i) => {
+            if (typeof sunk === 'string') return; 
+            let div = document.getElementById(`sunken-${i}`);
+            if(!div) { div = document.createElement('div'); div.id = `sunken-${i}`; div.className = 'sunken-island'; map.appendChild(div); }
             div.innerText = sunk.name;
-            // 저장된 절대 좌표 사용
-            div.style.left = `${sunk.x - 40}px`; div.style.top = `${sunk.y - 40}px`;
-            map.appendChild(div);
+            const c = getSunkenIslandCenter(i);
+            div.style.left = `${c.x - 40}px`; div.style.top = `${c.y - 40}px`;
         });
+        document.querySelectorAll('.sunken-island').forEach(el => { if(parseInt(el.id.split('-')[1]) >= sunkenIslands.length) el.remove(); });
 
-        // 3. 점선 경로 업데이트 (고정된 섬들을 순서대로 연결)
+        // 3. 점선 경로 업데이트 (활성 섬만 연결)
         const svg = document.getElementById('paths-svg');
         svg.innerHTML = '';
         if(islands.length > 1) {
-            let pts = islands.map((is) => `${is.x},${is.y}`).join(' ');
-            pts += ` ${islands[0].x},${islands[0].y}`; // 링 닫기
+            let pts = islands.map((_, i) => { const c = getIslandCenter(i); return `${c.x},${c.y}`; }).join(' ');
+            const c0 = getIslandCenter(0); pts += ` ${c0.x},${c0.y}`;
             const line = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
             line.setAttribute("points", pts); line.setAttribute("class", "route-line"); svg.appendChild(line);
         }
@@ -456,6 +425,14 @@
         updateLogPanel();
         updateName('cw', state.cw.name);
         updateName('ccw', state.ccw.name);
+    }
+
+    function addIsland() {
+        const input = document.getElementById('island-name');
+        const name = input.value || `섬 ${islands.length+1}`;
+        // 새 섬은 궤도의 가장 마지막 위치에 추가됨
+        islands.push({ name: name, offsetX: getIrregular(), offsetY: getIrregular() });
+        input.value = ''; saveProjectData(); render();
     }
 
     function startVoyage(key) {
@@ -554,7 +531,7 @@
         const timeString = now.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
         
         sunk.time = `${dateString} ${timeString}`;
-        sunkenIslands.push(sunk); // 객체 통째로 삽입 (절대 x,y 포함)
+        sunkenIslands.push(sunk); 
         
         ['cw', 'ccw'].forEach(k => {
             if(state[k].pos === idx) {
@@ -598,7 +575,6 @@
     }
 
     initProjectManager();
-    // 브라우저 리사이즈 시 요소들의 상대적 거리를 유지하기 위해 위치 업데이트
     window.addEventListener('resize', () => render());
 </script>
 
