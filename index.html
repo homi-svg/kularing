@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>쿨라(Kula) 링 항해 시뮬레이션 - 자동 저장 기능</title>
+    <title>쿨라(Kula) 링 항해 시뮬레이션 - 되돌리기 기능 추가</title>
     <style>
         body { 
             font-family: 'Malgun Gothic', sans-serif; 
@@ -56,7 +56,7 @@
             position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
             padding: 12px 15px; background: rgba(255, 255, 255, 0.85); 
             backdrop-filter: blur(5px); border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-            display: flex; flex-direction: column; gap: 8px; z-index: 100; color: #333; min-width: 350px;
+            display: flex; flex-direction: column; gap: 8px; z-index: 100; color: #333; min-width: 360px;
         }
         
         /* --- 양쪽 항해 일지 패널 --- */
@@ -96,9 +96,13 @@
         .btn-add { background-color: #2e7d32; flex-grow: 0; }
         .btn-del { background-color: #c62828; flex-grow: 0; }
         .btn-view { background-color: #455a64; flex-grow: 0; }
-        .btn-reset { background-color: #ff9800; flex-grow: 0; padding: 6px 8px; font-size: 11px; } /* 초기화 버튼 */
+        .btn-reset { background-color: #ff9800; flex-grow: 0; padding: 6px 8px; font-size: 11px; } 
+        
         .btn-cw { background-image: linear-gradient(to right, #ff0844 0%, #ffb199 100%); }
         .btn-ccw { background-image: linear-gradient(to right, #d5d4d0 0%, #eeeeec 100%); color: #333; text-shadow: none; }
+        
+        /* 되돌리기 버튼 스타일 */
+        .btn-undo { background-color: #78909c; flex-grow: 0; padding: 6px 10px; font-size: 14px; }
 
         /* --- 침몰 기록 모달 --- */
         #modal-overlay {
@@ -183,7 +187,7 @@
     <div class="control-group">
         <input type="text" id="island-name" placeholder="새로운 섬 이름" style="width: 90px;">
         <button class="btn-add" onclick="addIsland()">섬 발견!</button>
-        <button class="btn-reset" onclick="resetState()">전체 초기화</button>
+        <button class="btn-reset" onclick="resetState()" title="모든 데이터 지우기">전체 초기화</button>
     </div>
     
     <div class="control-group">
@@ -197,11 +201,13 @@
     <div class="control-group">
         <input type="text" id="input-cw" value="술라바" oninput="updateName('cw', this.value)" style="width: 70px;" placeholder="물건 이름">
         <button class="btn-cw" onclick="startVoyage('cw')" id="btn-cw-text">🐚 출발 (시계)</button>
+        <button class="btn-undo" onclick="undoVoyage('cw')" title="항해 되돌리기">↩️</button>
     </div>
 
     <div class="control-group">
         <input type="text" id="input-ccw" value="음왈리" oninput="updateName('ccw', this.value)" style="width: 70px;" placeholder="물건 이름">
         <button class="btn-ccw" onclick="startVoyage('ccw')" id="btn-ccw-text">🔲 출발 (반시계)</button>
+        <button class="btn-undo" onclick="undoVoyage('ccw')" title="항해 되돌리기">↩️</button>
     </div>
 </div>
 
@@ -222,7 +228,6 @@
 <script>
     const getMoreIrregularOffset = () => (Math.random() - 0.5) * 80; 
 
-    // 기본 데이터 (로컬 스토리지에 데이터가 없을 때 사용)
     const defaultIslands = [
         { name: '제주도', offsetX: getMoreIrregularOffset(), offsetY: getMoreIrregularOffset() },
         { name: '독도', offsetX: getMoreIrregularOffset(), offsetY: getMoreIrregularOffset() },
@@ -230,36 +235,28 @@
         { name: '거제도', offsetX: getMoreIrregularOffset(), offsetY: getMoreIrregularOffset() }
     ];
     
-    // 상태 변수들
     let islands = [];
     let sunkenIslands = [];
     let state = {};
     let centerX, centerY, baseRadius;
 
-    // --- 💾 데이터 저장 및 불러오기 함수 ---
+    // --- 데이터 저장 및 불러오기 ---
     function saveState() {
-        const data = {
-            islands: islands,
-            sunkenIslands: sunkenIslands,
-            state: state
-        };
+        const data = { islands, sunkenIslands, state };
         localStorage.setItem('kulaSimulationData', JSON.stringify(data));
     }
 
     function loadState() {
         const savedData = localStorage.getItem('kulaSimulationData');
         if (savedData) {
-            // 저장된 데이터가 있으면 불러오기
             const parsed = JSON.parse(savedData);
             islands = parsed.islands;
             sunkenIslands = parsed.sunkenIslands;
             state = parsed.state;
             
-            // 입력창에 저장된 이름 덮어쓰기
             document.getElementById('input-cw').value = state.cw.name;
             document.getElementById('input-ccw').value = state.ccw.name;
         } else {
-            // 저장된 데이터가 없으면 기본값으로 세팅
             islands = JSON.parse(JSON.stringify(defaultIslands));
             sunkenIslands = [];
             state = {
@@ -272,11 +269,48 @@
     function resetState() {
         if(confirm("모든 항해 기록과 섬 정보가 초기화됩니다. 계속하시겠습니까?")) {
             localStorage.removeItem('kulaSimulationData');
-            location.reload(); // 페이지 새로고침으로 깔끔하게 초기화
+            location.reload(); 
         }
     }
-    // ----------------------------------------
 
+    // --- 되돌리기 기능 (Undo) ---
+    function undoVoyage(direction) {
+        const item = state[direction];
+        
+        if (item.log.length === 0) {
+            alert('되돌릴 항해 기록이 없습니다.');
+            return;
+        }
+
+        const lastLogName = item.log[item.log.length - 1];
+
+        // 만약 마지막 기록이 침몰로 인한 긴급 대피라면
+        if (lastLogName.includes('긴급 대피')) {
+            alert('침몰로 인한 긴급 대피는 되돌릴 수 없습니다.');
+            return;
+        }
+
+        // 일지에 기록된 이름과 현재 섬 목록의 이름 대조
+        const targetIndex = islands.findIndex(island => island.name === lastLogName);
+
+        if (targetIndex === -1) {
+            alert('돌아갈 섬이 이미 바다 밑으로 침몰하여 되돌릴 수 없습니다!');
+            return;
+        }
+
+        // 현재 위치 저장 후 상태 업데이트
+        const currentPos = item.pos;
+        item.pos = targetIndex; 
+        item.log.pop(); // 일지에서 마지막 기록 삭제
+
+        saveState(); // 상태 저장
+        updateLogPanel(); // 패널 갱신
+        
+        // 되돌아가는 애니메이션 실행
+        animateCanoe(direction, currentPos, targetIndex);
+    }
+
+    // --- 섬 침몰 기능 ---
     function updateDropdown() {
         const select = document.getElementById('island-to-sink');
         select.innerHTML = '';
@@ -313,7 +347,7 @@
             }
         });
         
-        saveState(); // 상태 저장
+        saveState(); 
         render();
         updateSinkModalContent();
     }
@@ -336,6 +370,7 @@
         }
     }
 
+    // --- UI 업데이트 ---
     function updateName(key, newName) {
         state[key].name = newName || (key === 'cw' ? '술라바' : '음왈리');
         const el = document.getElementById(`item-${key}`);
@@ -349,7 +384,7 @@
         const logTitle = document.getElementById(`log-${key}-title`);
         if(logTitle) logTitle.innerText = state[key].name;
 
-        saveState(); // 이름 변경 시 저장
+        saveState(); 
     }
 
     function updateLogPanel() {
@@ -444,7 +479,7 @@
         }
         
         updateLogPanel();
-        updateName('cw', state.cw.name); // 렌더링 시 이름/아이콘 최신화
+        updateName('cw', state.cw.name); 
         updateName('ccw', state.ccw.name);
     }
 
@@ -495,7 +530,7 @@
         }
         item.pos = nextPos; 
 
-        saveState(); // 항해 시작 시 상태 저장
+        saveState(); 
         animateCanoe(direction, prevPos, nextPos);
     }
 
@@ -533,7 +568,7 @@
             boatBody.style.transform = `rotate(${angle}deg)`; 
 
             if (progress < 1) requestAnimationFrame(step);
-            else render(); // 도착 후 최종 렌더링
+            else render(); 
         }
 
         render(key); 
@@ -548,14 +583,13 @@
         islands.push({ name: name, offsetX: getMoreIrregularOffset(), offsetY: getMoreIrregularOffset() });
         input.value = '';
         
-        saveState(); // 섬 추가 시 상태 저장
+        saveState(); 
         render();
     }
 
-    // --- 🚀 프로그램 시작 (초기화) ---
-    loadState(); // 1. 브라우저 저장소에서 데이터 불러오기
-    render();    // 2. 화면 그리기
-    window.addEventListener('resize', () => render()); // 화면 크기 변할 때 다시 그리기
+    loadState(); 
+    render();    
+    window.addEventListener('resize', () => render());
 
 </script>
 
