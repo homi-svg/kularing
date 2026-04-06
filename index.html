@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>쿨라(Kula) 링 항해 시뮬레이션 - 테두리 정박</title>
+    <title>쿨라(Kula) 링 항해 시뮬레이션 - 자동 저장 기능</title>
     <style>
         body { 
             font-family: 'Malgun Gothic', sans-serif; 
@@ -33,7 +33,6 @@
             background-size: 300px 80px;
             animation: wave2-move 8s linear infinite; z-index: 5;
         }
-        
         @keyframes wave1-move {
             0% { transform: translate(0, 0); }
             100% { transform: translate(-400px, 100px); } 
@@ -97,6 +96,7 @@
         .btn-add { background-color: #2e7d32; flex-grow: 0; }
         .btn-del { background-color: #c62828; flex-grow: 0; }
         .btn-view { background-color: #455a64; flex-grow: 0; }
+        .btn-reset { background-color: #ff9800; flex-grow: 0; padding: 6px 8px; font-size: 11px; } /* 초기화 버튼 */
         .btn-cw { background-image: linear-gradient(to right, #ff0844 0%, #ffb199 100%); }
         .btn-ccw { background-image: linear-gradient(to right, #d5d4d0 0%, #eeeeec 100%); color: #333; text-shadow: none; }
 
@@ -147,19 +147,19 @@
             white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 48px;
         }
 
-        /* --- 술라바: 붉은 조개껍질 (시계방향) --- */
+        /* 술라바: 붉은 조개껍질 */
         .item-cw .boat-body { 
             background-image: linear-gradient(to top, #ff0844 0%, #ffb199 100%);
             border: 2px solid #d32f2f; 
-            border-radius: 50% 50% 50% 10%; /* 조개 모양 */
+            border-radius: 50% 50% 50% 10%; 
         } 
         .item-cw .boat-name { color: white; text-shadow: 1px 1px 3px rgba(0,0,0,0.8); }
 
-        /* --- 음왈리: 하얀 직사각형 네모 (반시계방향) --- */
+        /* 음왈리: 하얀 직사각형 네모 */
         .item-ccw .boat-body { 
             background-image: linear-gradient(to top, #d5d4d0 0%, #d5d4d0 1%, #eeeeec 31%, #efeeec 75%, #e9e9e7 100%);
             border: 2px solid #aaa; 
-            border-radius: 4px; /* 직사각형 */
+            border-radius: 4px; 
         } 
         .item-ccw .boat-name { color: #333; }
 
@@ -181,8 +181,9 @@
 
 <div id="control-panel">
     <div class="control-group">
-        <input type="text" id="island-name" placeholder="새로운 섬 이름" style="width: 100px;">
+        <input type="text" id="island-name" placeholder="새로운 섬 이름" style="width: 90px;">
         <button class="btn-add" onclick="addIsland()">섬 발견!</button>
+        <button class="btn-reset" onclick="resetState()">전체 초기화</button>
     </div>
     
     <div class="control-group">
@@ -221,21 +222,60 @@
 <script>
     const getMoreIrregularOffset = () => (Math.random() - 0.5) * 80; 
 
-    let islands = [
+    // 기본 데이터 (로컬 스토리지에 데이터가 없을 때 사용)
+    const defaultIslands = [
         { name: '제주도', offsetX: getMoreIrregularOffset(), offsetY: getMoreIrregularOffset() },
         { name: '독도', offsetX: getMoreIrregularOffset(), offsetY: getMoreIrregularOffset() },
         { name: '울릉도', offsetX: getMoreIrregularOffset(), offsetY: getMoreIrregularOffset() },
         { name: '거제도', offsetX: getMoreIrregularOffset(), offsetY: getMoreIrregularOffset() }
     ];
     
+    // 상태 변수들
+    let islands = [];
     let sunkenIslands = [];
-
-    const state = {
-        cw: { pos: 0, log: [], name: '술라바' },
-        ccw: { pos: 0, log: [], name: '음왈리' }
-    };
-
+    let state = {};
     let centerX, centerY, baseRadius;
+
+    // --- 💾 데이터 저장 및 불러오기 함수 ---
+    function saveState() {
+        const data = {
+            islands: islands,
+            sunkenIslands: sunkenIslands,
+            state: state
+        };
+        localStorage.setItem('kulaSimulationData', JSON.stringify(data));
+    }
+
+    function loadState() {
+        const savedData = localStorage.getItem('kulaSimulationData');
+        if (savedData) {
+            // 저장된 데이터가 있으면 불러오기
+            const parsed = JSON.parse(savedData);
+            islands = parsed.islands;
+            sunkenIslands = parsed.sunkenIslands;
+            state = parsed.state;
+            
+            // 입력창에 저장된 이름 덮어쓰기
+            document.getElementById('input-cw').value = state.cw.name;
+            document.getElementById('input-ccw').value = state.ccw.name;
+        } else {
+            // 저장된 데이터가 없으면 기본값으로 세팅
+            islands = JSON.parse(JSON.stringify(defaultIslands));
+            sunkenIslands = [];
+            state = {
+                cw: { pos: 0, log: [], name: '술라바' },
+                ccw: { pos: 0, log: [], name: '음왈리' }
+            };
+        }
+    }
+
+    function resetState() {
+        if(confirm("모든 항해 기록과 섬 정보가 초기화됩니다. 계속하시겠습니까?")) {
+            localStorage.removeItem('kulaSimulationData');
+            location.reload(); // 페이지 새로고침으로 깔끔하게 초기화
+        }
+    }
+    // ----------------------------------------
 
     function updateDropdown() {
         const select = document.getElementById('island-to-sink');
@@ -273,6 +313,7 @@
             }
         });
         
+        saveState(); // 상태 저장
         render();
         updateSinkModalContent();
     }
@@ -307,6 +348,8 @@
 
         const logTitle = document.getElementById(`log-${key}-title`);
         if(logTitle) logTitle.innerText = state[key].name;
+
+        saveState(); // 이름 변경 시 저장
     }
 
     function updateLogPanel() {
@@ -355,14 +398,12 @@
         svg.appendChild(polyline);
     }
 
-    // --- 섬 가운데 글씨를 가리지 않도록 위치 계산 로직 변경 ---
     function getItemTargetPoint(key, index) {
         const center = getIslandCenter(index);
-        // 술라바(cw)는 섬의 위쪽 테두리로, 음왈리(ccw)는 섬의 아래쪽 테두리로 고정 배치
         if (key === 'cw') {
-            return { x: center.x, y: center.y - 45 }; // 섬 중앙에서 45px 위쪽
+            return { x: center.x, y: center.y - 45 }; 
         } else {
-            return { x: center.x, y: center.y + 45 }; // 섬 중앙에서 45px 아래쪽
+            return { x: center.x, y: center.y + 45 }; 
         }
     }
 
@@ -403,6 +444,8 @@
         }
         
         updateLogPanel();
+        updateName('cw', state.cw.name); // 렌더링 시 이름/아이콘 최신화
+        updateName('ccw', state.ccw.name);
     }
 
     function getIslandCenter(index) {
@@ -452,6 +495,7 @@
         }
         item.pos = nextPos; 
 
+        saveState(); // 항해 시작 시 상태 저장
         animateCanoe(direction, prevPos, nextPos);
     }
 
@@ -489,7 +533,7 @@
             boatBody.style.transform = `rotate(${angle}deg)`; 
 
             if (progress < 1) requestAnimationFrame(step);
-            else render();
+            else render(); // 도착 후 최종 렌더링
         }
 
         render(key); 
@@ -503,11 +547,15 @@
         const name = input.value || `새로운 섬 ${islands.length + 1}`;
         islands.push({ name: name, offsetX: getMoreIrregularOffset(), offsetY: getMoreIrregularOffset() });
         input.value = '';
+        
+        saveState(); // 섬 추가 시 상태 저장
         render();
     }
 
-    render();
-    window.addEventListener('resize', () => render());
+    // --- 🚀 프로그램 시작 (초기화) ---
+    loadState(); // 1. 브라우저 저장소에서 데이터 불러오기
+    render();    // 2. 화면 그리기
+    window.addEventListener('resize', () => render()); // 화면 크기 변할 때 다시 그리기
 
 </script>
 
