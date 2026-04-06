@@ -198,7 +198,6 @@
     let state = {};
     let centerX, centerY, baseRadius;
 
-    // --- 💾 데이터 저장 로직 수정 (버그 픽스) ---
     function saveProjectData() {
         if (!currentProject) return;
         const data = { islands, sunkenIslands, state };
@@ -207,7 +206,6 @@
         localStorage.setItem('kula_project_list', JSON.stringify(projectList));
     }
 
-    // 창을 닫거나 새로고침할 때 마지막 상태 무조건 저장
     window.addEventListener('beforeunload', () => {
         saveProjectData();
     });
@@ -247,24 +245,19 @@
         if (!name || projectList.includes(name)) return alert("중복되거나 유효하지 않은 이름입니다.");
         
         projectList.push(name);
-        localStorage.setItem('kula_project_list', JSON.stringify(projectList)); // 리스트 즉시 저장
+        localStorage.setItem('kula_project_list', JSON.stringify(projectList)); 
         document.getElementById('new-project-name').value = '';
         
         switchProject(name);
     }
 
     function switchProject(name) {
-        // 1. 현재 작업 중이던 것 확실하게 저장
         if (currentProject) {
             saveProjectData();
         }
-
-        // 2. 프로젝트 변경
         currentProject = name;
-        
-        // 3. 새 데이터 로드 및 UI 갱신
         loadProjectData(name);
-        saveProjectData(); // 새 프로젝트의 경우 생성된 초기값을 바로 스토리지에 확보
+        saveProjectData(); 
         updateProjectSelector(); 
         render();
     }
@@ -443,16 +436,40 @@
         sel.innerHTML = islands.map((is, i) => `<option value="${i}">${is.name}</option>`).join('');
     }
 
+    // --- 🚨 긴급 대피 로그 수정본 포함 ---
     function sinkSelectedIsland() {
         const idx = parseInt(document.getElementById('island-to-sink').value);
         if (isNaN(idx)) return;
+        
+        // 마지막 섬 파괴 방지
+        if (islands.length <= 1) {
+            alert("바다에 섬이 최소 1개는 남아있어야 합니다!");
+            return;
+        }
+
         const sunk = islands.splice(idx, 1)[0];
         sunkenIslands.push(`${sunk.name} (${new Date().toLocaleTimeString()})`);
+        
         ['cw', 'ccw'].forEach(k => {
-            if(state[k].pos === idx) state[k].pos = 0;
-            else if(state[k].pos > idx) state[k].pos--;
+            if(state[k].pos === idx) {
+                state[k].pos = 0; 
+                // 긴급 대피 로그 기록!
+                if (islands.length > 0) {
+                    state[k].log.push(`[🚨 긴급 대피] ➔ ${islands[0].name}`);
+                }
+            }
+            else if(state[k].pos > idx) {
+                state[k].pos--;
+            }
         });
-        saveProjectData(); render(); toggleSinkRecord(); toggleSinkRecord();
+        
+        saveProjectData(); 
+        render(); 
+        
+        const m = document.getElementById('sink-modal');
+        if (m.style.display === 'block') {
+            updateSinkModalContent();
+        }
     }
 
     function toggleSinkRecord() {
