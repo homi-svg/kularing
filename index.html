@@ -41,7 +41,7 @@
             position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
             padding: 12px 15px; background: rgba(255, 255, 255, 0.85); 
             backdrop-filter: blur(5px); border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-            display: flex; flex-direction: column; gap: 8px; z-index: 100; color: #333; min-width: 360px;
+            display: flex; flex-direction: column; gap: 10px; z-index: 100; color: #333; min-width: 320px;
         }
         
         /* --- 양쪽 항해 일지 패널 --- */
@@ -58,8 +58,8 @@
         .log-content::-webkit-scrollbar { width: 5px; }
         .log-content::-webkit-scrollbar-thumb { background: #bbb; border-radius: 3px; }
 
-        .control-group { display: flex; gap: 6px; align-items: center; justify-content: center; flex-wrap: wrap; }
-        .divider { border-top: 1px solid #ccc; width: 100%; margin: 3px 0; }
+        .control-group { display: flex; gap: 6px; align-items: center; justify-content: center; }
+        .divider { border-top: 1px solid #ccc; width: 100%; margin: 2px 0; }
 
         input, select { padding: 6px; border: 1px solid #ccc; border-radius: 5px; text-align: center; font-weight: bold; font-family: inherit; font-size: 13px; }
         
@@ -71,8 +71,8 @@
         .btn-del { background-color: #c62828; }
         .btn-view { background-color: #455a64; }
         .btn-undo { background-color: #78909c; }
-        .btn-cw { background-image: linear-gradient(to right, #ff0844 0%, #ffb199 100%); }
-        .btn-ccw { background-image: linear-gradient(to right, #d5d4d0 0%, #eeeeec 100%); color: #333; }
+        .btn-cw { background-image: linear-gradient(to right, #ff0844 0%, #ffb199 100%); flex-grow: 1; }
+        .btn-ccw { background-image: linear-gradient(to right, #d5d4d0 0%, #eeeeec 100%); color: #333; flex-grow: 1; }
 
         /* --- 모달 --- */
         #modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.4); z-index: 999; }
@@ -101,7 +101,6 @@
            📱 모바일 최적화 (반응형 미디어 쿼리) 
            ========================================= */
         @media (max-width: 768px) {
-            /* 프로젝트 매니저를 화면 맨 위로 고정 */
             #project-manager {
                 top: 0; left: 0; bottom: auto; width: 100vw; border-radius: 0 0 15px 15px;
                 flex-direction: row; flex-wrap: wrap; justify-content: space-between; align-items: center;
@@ -109,20 +108,19 @@
             }
             #project-manager h3 { border: none; padding: 0; margin-bottom: 0; }
             
-            /* 메인 컨트롤 패널을 화면 맨 아래로 고정 */
             #control-panel {
                 top: auto; bottom: 0; left: 0; transform: none; width: 100vw;
                 border-radius: 15px 15px 0 0; box-sizing: border-box;
-                min-width: 100vw; padding: 10px; padding-bottom: 25px; /* 아이폰 하단 여백 고려 */
+                min-width: 100vw; padding: 12px; padding-bottom: 25px; 
             }
 
-            /* 양쪽 일지 패널을 프로젝트 매니저 바로 아래에 작게 배치 */
-            .log-panel {
-                top: 70px; width: 120px; padding: 8px; box-sizing: border-box;
-            }
+            .log-panel { top: 70px; width: 120px; padding: 8px; box-sizing: border-box; }
             #log-panel-cw { left: 10px; }
             #log-panel-ccw { right: 10px; }
-            .log-content { height: 70px; } /* 높이 축소 */
+            .log-content { height: 70px; } 
+            
+            /* 모바일에서 인풋 창 살짝 넓게 조정 */
+            .control-group input[type="text"] { flex-grow: 1; }
         }
     </style>
 </head>
@@ -157,7 +155,7 @@
 
 <div id="control-panel">
     <div class="control-group">
-        <input type="text" id="island-name" placeholder="새로운 섬 이름" style="width: 100px;">
+        <input type="text" id="island-name" placeholder="새로운 섬 이름" style="width: 90px;">
         <button class="btn-add" onclick="addIsland()">발견!</button>
         <select id="island-to-sink" style="width: 90px;"></select>
         <button class="btn-del" onclick="sinkSelectedIsland()">침몰</button>
@@ -167,11 +165,13 @@
     <div class="divider"></div>
     
     <div class="control-group">
-        <input type="text" id="input-cw" oninput="updateName('cw', this.value)" style="width: 60px;">
+        <input type="text" id="input-cw" oninput="updateName('cw', this.value)" style="width: 80px;">
         <button class="btn-cw" onclick="startVoyage('cw')" id="btn-cw-text">🐚 출발</button>
         <button class="btn-undo" onclick="undoVoyage('cw')">↩️</button>
-        
-        <input type="text" id="input-ccw" oninput="updateName('ccw', this.value)" style="width: 60px;">
+    </div>
+    
+    <div class="control-group">
+        <input type="text" id="input-ccw" oninput="updateName('ccw', this.value)" style="width: 80px;">
         <button class="btn-ccw" onclick="startVoyage('ccw')" id="btn-ccw-text">🔲 출발</button>
         <button class="btn-undo" onclick="undoVoyage('ccw')">↩️</button>
     </div>
@@ -181,13 +181,13 @@
 <div id="sink-modal">
     <h2>침몰 기록</h2>
     <ul id="sink-list" style="list-style:none; padding:0; text-align:left; max-height:200px; overflow-y:auto;"></ul>
-    <button onclick="toggleSinkRecord()" style="background:#333; width:100%; margin-top:10px;">닫기</button>
+    <button onclick="toggleSinkRecord()" style="background:#333; width:100%; margin-top:10px; padding: 10px;">닫기</button>
 </div>
 
 <div id="ocean-map"></div>
 
 <script>
-    const getIrregular = () => (Math.random() - 0.5) * 60; // 모바일 화면을 위해 오차 범위 살짝 줄임
+    const getIrregular = () => (Math.random() - 0.5) * 60;
     
     // --- 📂 멀티 프로젝트 관리 로직 ---
     let currentProject = "기본 바다";
@@ -202,7 +202,6 @@
         const savedList = localStorage.getItem('kula_project_list');
         if (savedList) projectList = JSON.parse(savedList);
         
-        // 브라우저를 껐다 켜도 '마지막 열었던 프로젝트'를 불러오도록 강력 보장
         const lastSavedProject = localStorage.getItem('kula_current_project');
         if (lastSavedProject && projectList.includes(lastSavedProject)) {
             currentProject = lastSavedProject;
@@ -230,18 +229,14 @@
         if (!name || projectList.includes(name)) return alert("중복되거나 유효하지 않은 이름입니다.");
         
         projectList.push(name);
-        localStorage.setItem('kula_project_list', JSON.stringify(projectList));
         document.getElementById('new-project-name').value = '';
-        
-        // 새로고침 없이 드롭다운 갱신 및 즉시 이동!
-        updateProjectSelector(); 
-        switchProject(name);
+        switchProject(name); // 내부적으로 저장까지 처리됨
     }
 
     function switchProject(name) {
         currentProject = name;
-        localStorage.setItem('kula_current_project', name); // 현재 상태 저장
-        document.getElementById('project-selector').value = name; // UI 동기화
+        saveProjectData(); // 이동 전 확실하게 저장 기록
+        updateProjectSelector(); 
         loadProjectData(name);
         render();
     }
@@ -252,16 +247,22 @@
 
         localStorage.removeItem(`kula_data_${currentProject}`);
         projectList = projectList.filter(p => p !== currentProject);
-        localStorage.setItem('kula_project_list', JSON.stringify(projectList));
         
         switchProject(projectList[0]);
-        updateProjectSelector();
     }
 
+    // ★ 강력한 저장 로직: 데이터, 목록, 현재 위치를 모두 한 번에 저장
     function saveProjectData() {
         const data = { islands, sunkenIslands, state };
         localStorage.setItem(`kula_data_${currentProject}`, JSON.stringify(data));
+        localStorage.setItem('kula_current_project', currentProject);
+        localStorage.setItem('kula_project_list', JSON.stringify(projectList));
     }
+
+    // 창을 닫거나 새로고침 할 때 무조건 저장 트리거 발동
+    window.addEventListener('beforeunload', () => {
+        saveProjectData();
+    });
 
     function loadProjectData(name) {
         const saved = localStorage.getItem(`kula_data_${name}`);
@@ -271,7 +272,6 @@
             sunkenIslands = parsed.sunkenIslands;
             state = parsed.state;
         } else {
-            // 새 프로젝트의 기본 데이터
             islands = [
                 { name: '키리위나', offsetX: getIrregular(), offsetY: getIrregular() },
                 { name: '도부', offsetX: getIrregular(), offsetY: getIrregular() },
@@ -283,7 +283,6 @@
                 ccw: { pos: 1, log: [], name: '음왈리' }
             };
         }
-        // UI 반영
         document.getElementById('input-cw').value = state.cw.name;
         document.getElementById('input-ccw').value = state.ccw.name;
     }
@@ -291,11 +290,9 @@
     // --- 모바일 대응 좌표 계산 로직 ---
     function updateDimensions() {
         const isMobile = window.innerWidth <= 768;
-        
-        // 데스크탑과 모바일의 여백을 다르게 계산
         const pTop = isMobile ? 180 : 180;    
-        const pBottom = isMobile ? 180 : 120; // 하단 패널 여백 확보
-        const pSide = isMobile ? 60 : 200;    // 모바일은 좌우 여백을 줄임
+        const pBottom = isMobile ? 180 : 120; 
+        const pSide = isMobile ? 60 : 200;    
 
         const sW = window.innerWidth - (pSide * 2);
         const sH = window.innerHeight - pTop - pBottom;
@@ -303,7 +300,7 @@
         centerX = pSide + (sW / 2); 
         centerY = pTop + (sH / 2);
         
-        baseRadius = Math.min(sW, sH) * 0.4; // 궤도 비율 조정
+        baseRadius = Math.min(sW, sH) * 0.4; 
         if(baseRadius < 80) baseRadius = 80;
     }
 
@@ -331,7 +328,7 @@
             if(!div) { div = document.createElement('div'); div.id = `island-${i}`; div.className = 'island'; map.appendChild(div); }
             div.innerText = is.name;
             const c = getIslandCenter(i);
-            div.style.left = `${c.x - 40}px`; div.style.top = `${c.y - 40}px`; // 섬 사이즈 조절(80px 절반)
+            div.style.left = `${c.x - 40}px`; div.style.top = `${c.y - 40}px`; 
         });
         document.querySelectorAll('.island').forEach(el => { if(parseInt(el.id.split('-')[1]) >= islands.length) el.remove(); });
 
@@ -434,7 +431,7 @@
             if(state[k].pos === idx) state[k].pos = 0;
             else if(state[k].pos > idx) state[k].pos--;
         });
-        saveProjectData(); render(); toggleSinkRecord(); toggleSinkRecord(); // 모달내용 즉시 갱신 꼼수
+        saveProjectData(); render(); toggleSinkRecord(); toggleSinkRecord();
     }
 
     function toggleSinkRecord() {
