@@ -1,531 +1,515 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
-<html>
+<!DOCTYPE html>
+<html lang="ko">
 <head>
-  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-  <meta http-equiv="Content-Style-Type" content="text/css">
-  <title></title>
-  <meta name="Generator" content="Cocoa HTML Writer">
-  <meta name="CocoaVersion" content="2575.7">
-  <style type="text/css">
-    p.p1 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px Helvetica}
-    p.p2 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px Helvetica; min-height: 14.0px}
-  </style>
+    <meta charset="UTF-8">
+    <title>쿨라(Kula) 링 항해 시뮬레이션 - 테두리 정박</title>
+    <style>
+        body { 
+            font-family: 'Malgun Gothic', sans-serif; 
+            margin: 0; padding: 0;
+            overflow: hidden; 
+            width: 100vw; height: 100vh;
+            color: white;
+            background-image: linear-gradient(to right, #4facfe 0%, #00f2fe 100%);
+            position: relative; 
+        }
+
+        /* --- 전체 화면 귀여운 물결 효과 --- */
+        .wave-container {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; 
+            overflow: hidden; z-index: 1; pointer-events: none; 
+        }
+        .wave {
+            position: absolute; top: -50vh; left: -50vw; width: 200vw; height: 200vh;
+            background-repeat: repeat; 
+        }
+        .wave1 {
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 100"><path fill="none" stroke="%23ffffff" stroke-width="2.5" stroke-opacity="0.3" d="M0,50 C100,80 100,20 200,50 C300,80 300,20 400,50"></path></svg>');
+            background-size: 400px 100px;
+            animation: wave1-move 12s linear infinite; z-index: 10;
+        }
+        .wave2 {
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 80"><path fill="none" stroke="%23ffffff" stroke-width="2" stroke-opacity="0.2" d="M0,40 C75,10 75,70 150,40 C225,10 225,70 300,40"></path></svg>');
+            background-size: 300px 80px;
+            animation: wave2-move 8s linear infinite; z-index: 5;
+        }
+        
+        @keyframes wave1-move {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(-400px, 100px); } 
+        }
+        @keyframes wave2-move {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(300px, -80px); } 
+        }
+
+        /* --- 항해 경로 점선 --- */
+        #paths-svg {
+            position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
+            pointer-events: none; z-index: 5; 
+        }
+        .route-line {
+            fill: none; stroke: rgba(255, 255, 255, 0.6); stroke-width: 2; stroke-dasharray: 8 6; 
+        }
+
+        /* --- 상단 컨트롤 패널 --- */
+        #control-panel { 
+            position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+            padding: 12px 15px; background: rgba(255, 255, 255, 0.85); 
+            backdrop-filter: blur(5px); border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            display: flex; flex-direction: column; gap: 8px; z-index: 100; color: #333; min-width: 350px;
+        }
+        
+        /* --- 양쪽 항해 일지 패널 --- */
+        .log-panel {
+            position: absolute; top: 20px; width: 150px; 
+            background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(5px); border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2); padding: 12px;
+            display: flex; flex-direction: column; gap: 8px; z-index: 100; color: #333;
+        }
+
+        #log-panel-cw { left: 15px; border-top: 4px solid #ff0844; }
+        #log-panel-ccw { right: 15px; border-top: 4px solid #999; }
+
+        .log-panel h3 { margin: 0; font-size: 14px; text-align: center; border-bottom: 2px solid #ddd; padding-bottom: 6px; }
+        
+        #log-cw-title { color: #ff0844; }
+        #log-ccw-title { color: #555; }
+        
+        .log-content {
+            font-size: 11px; line-height: 1.5; background: rgba(255, 255, 255, 0.6);
+            padding: 8px; border-radius: 6px; height: 120px; overflow-y: auto; 
+            border: 1px inset #ddd; word-break: keep-all;
+        }
+        .log-content::-webkit-scrollbar { width: 5px; }
+        .log-content::-webkit-scrollbar-thumb { background: #bbb; border-radius: 3px; }
+
+        .control-group { display: flex; gap: 6px; align-items: center; justify-content: center; }
+        .divider { border-top: 1px solid #ccc; width: 100%; margin: 3px 0; }
+
+        input, select { padding: 6px; border: 1px solid #ccc; border-radius: 5px; text-align: center; font-weight: bold; font-family: inherit; }
+        select { cursor: pointer; }
+        
+        button { padding: 6px 12px; cursor: pointer; border: none; border-radius: 5px; color: white; font-weight: bold; transition: transform 0.1s, opacity 0.2s; flex-grow: 1; font-size: 13px; }
+        button:hover { opacity: 0.9; }
+        button:active { transform: scale(0.98); }
+        
+        .btn-add { background-color: #2e7d32; flex-grow: 0; }
+        .btn-del { background-color: #c62828; flex-grow: 0; }
+        .btn-view { background-color: #455a64; flex-grow: 0; }
+        .btn-cw { background-image: linear-gradient(to right, #ff0844 0%, #ffb199 100%); }
+        .btn-ccw { background-image: linear-gradient(to right, #d5d4d0 0%, #eeeeec 100%); color: #333; text-shadow: none; }
+
+        /* --- 침몰 기록 모달 --- */
+        #modal-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(0,0,0,0.4); z-index: 999;
+        }
+        #sink-modal {
+            display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: rgba(255, 255, 255, 0.95); padding: 20px 30px; border-radius: 15px;
+            box-shadow: 0 5px 25px rgba(0,0,0,0.4); z-index: 1000; color: #333;
+            min-width: 250px; max-height: 70vh; overflow-y: auto; text-align: center;
+        }
+        #sink-modal h2 { margin-top: 0; color: #c62828; font-size: 18px; border-bottom: 2px solid #ddd; padding-bottom: 10px; }
+        #sink-list { list-style: none; padding: 0; margin: 15px 0; font-size: 14px; line-height: 1.8; text-align: left; }
+        #sink-list li { border-bottom: 1px dashed #ccc; padding: 5px 0; }
+        #sink-list li::before { content: '🌊 '; }
+        .btn-close { background-color: #333; margin-top: 10px; width: 100%; color: white; }
+
+        #ocean-map { position: relative; width: 100vw; height: 100vh; z-index: 10; overflow: hidden; }
+
+        .island {
+            position: absolute; width: 85px; height: 85px;
+            background-image: linear-gradient(to top, #0ba360 0%, #3cba92 100%); 
+            border: 3px solid #1a661a;
+            border-radius: 50% 60% 50% 70% / 60% 50% 70% 50%;
+            display: flex; align-items: center; justify-content: center; 
+            font-weight: bold; font-size: 14px; color: white; text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+            box-shadow: 3px 5px 15px rgba(0,0,0,0.3);
+            transition: all 0.8s ease; z-index: 10;
+        }
+
+        .item {
+            position: absolute; width: 56px; height: 40px; 
+            cursor: default; z-index: 50; 
+            display: flex; align-items: center; justify-content: center;
+            transition: left 1s ease-in-out, top 1s ease-in-out;
+        }
+        
+        .boat-body {
+            position: absolute; width: 100%; height: 100%;
+            z-index: -1; box-shadow: 0 4px 8px rgba(0,0,0,0.4);
+        }
+
+        .boat-name {
+            font-size: 11px; font-weight: bold; z-index: 1; pointer-events: none;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 48px;
+        }
+
+        /* --- 술라바: 붉은 조개껍질 (시계방향) --- */
+        .item-cw .boat-body { 
+            background-image: linear-gradient(to top, #ff0844 0%, #ffb199 100%);
+            border: 2px solid #d32f2f; 
+            border-radius: 50% 50% 50% 10%; /* 조개 모양 */
+        } 
+        .item-cw .boat-name { color: white; text-shadow: 1px 1px 3px rgba(0,0,0,0.8); }
+
+        /* --- 음왈리: 하얀 직사각형 네모 (반시계방향) --- */
+        .item-ccw .boat-body { 
+            background-image: linear-gradient(to top, #d5d4d0 0%, #d5d4d0 1%, #eeeeec 31%, #efeeec 75%, #e9e9e7 100%);
+            border: 2px solid #aaa; 
+            border-radius: 4px; /* 직사각형 */
+        } 
+        .item-ccw .boat-name { color: #333; }
+
+    </style>
 </head>
 <body>
-<p class="p1">&lt;!DOCTYPE html&gt;</p>
-<p class="p1">&lt;html lang="ko"&gt;</p>
-<p class="p1">&lt;head&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;meta charset="UTF-8"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;title&gt;쿨라(Kula) 링 항해 시뮬레이션 - 테두리 정박&lt;/title&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;style&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>body {<span class="Apple-converted-space"> </span></p>
-<p class="p1"><span class="Apple-converted-space">            </span>font-family: 'Malgun Gothic', sans-serif;<span class="Apple-converted-space"> </span></p>
-<p class="p1"><span class="Apple-converted-space">            </span>margin: 0; padding: 0;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>overflow: hidden;<span class="Apple-converted-space"> </span></p>
-<p class="p1"><span class="Apple-converted-space">            </span>width: 100vw; height: 100vh;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>color: white;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>background-image: linear-gradient(to right, #4facfe 0%, #00f2fe 100%);</p>
-<p class="p1"><span class="Apple-converted-space">            </span>position: relative;<span class="Apple-converted-space"> </span></p>
-<p class="p1"><span class="Apple-converted-space">        </span>}</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>/* --- 전체 화면 귀여운 물결 효과 --- */</p>
-<p class="p1"><span class="Apple-converted-space">        </span>.wave-container {</p>
-<p class="p1"><span class="Apple-converted-space">            </span>position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;<span class="Apple-converted-space"> </span></p>
-<p class="p1"><span class="Apple-converted-space">            </span>overflow: hidden; z-index: 1; pointer-events: none;<span class="Apple-converted-space"> </span></p>
-<p class="p1"><span class="Apple-converted-space">        </span>}</p>
-<p class="p1"><span class="Apple-converted-space">        </span>.wave {</p>
-<p class="p1"><span class="Apple-converted-space">            </span>position: absolute; top: -50vh; left: -50vw; width: 200vw; height: 200vh;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>background-repeat: repeat;<span class="Apple-converted-space"> </span></p>
-<p class="p1"><span class="Apple-converted-space">        </span>}</p>
-<p class="p1"><span class="Apple-converted-space">        </span>.wave1 {</p>
-<p class="p1"><span class="Apple-converted-space">            </span>background-image: url('data:image/svg+xml;utf8,&lt;svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 100"&gt;&lt;path fill="none" stroke="%23ffffff" stroke-width="2.5" stroke-opacity="0.3" d="M0,50 C100,80 100,20 200,50 C300,80 300,20 400,50"&gt;&lt;/path&gt;&lt;/svg&gt;');</p>
-<p class="p1"><span class="Apple-converted-space">            </span>background-size: 400px 100px;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>animation: wave1-move 12s linear infinite; z-index: 10;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>}</p>
-<p class="p1"><span class="Apple-converted-space">        </span>.wave2 {</p>
-<p class="p1"><span class="Apple-converted-space">            </span>background-image: url('data:image/svg+xml;utf8,&lt;svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 80"&gt;&lt;path fill="none" stroke="%23ffffff" stroke-width="2" stroke-opacity="0.2" d="M0,40 C75,10 75,70 150,40 C225,10 225,70 300,40"&gt;&lt;/path&gt;&lt;/svg&gt;');</p>
-<p class="p1"><span class="Apple-converted-space">            </span>background-size: 300px 80px;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>animation: wave2-move 8s linear infinite; z-index: 5;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>}</p>
-<p class="p2"><span class="Apple-converted-space">        </span></p>
-<p class="p1"><span class="Apple-converted-space">        </span>@keyframes wave1-move {</p>
-<p class="p1"><span class="Apple-converted-space">            </span>0% { transform: translate(0, 0); }</p>
-<p class="p1"><span class="Apple-converted-space">            </span>100% { transform: translate(-400px, 100px); }<span class="Apple-converted-space"> </span></p>
-<p class="p1"><span class="Apple-converted-space">        </span>}</p>
-<p class="p1"><span class="Apple-converted-space">        </span>@keyframes wave2-move {</p>
-<p class="p1"><span class="Apple-converted-space">            </span>0% { transform: translate(0, 0); }</p>
-<p class="p1"><span class="Apple-converted-space">            </span>100% { transform: translate(300px, -80px); }<span class="Apple-converted-space"> </span></p>
-<p class="p1"><span class="Apple-converted-space">        </span>}</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>/* --- 항해 경로 점선 --- */</p>
-<p class="p1"><span class="Apple-converted-space">        </span>#paths-svg {</p>
-<p class="p1"><span class="Apple-converted-space">            </span>position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>pointer-events: none; z-index: 5;<span class="Apple-converted-space"> </span></p>
-<p class="p1"><span class="Apple-converted-space">        </span>}</p>
-<p class="p1"><span class="Apple-converted-space">        </span>.route-line {</p>
-<p class="p1"><span class="Apple-converted-space">            </span>fill: none; stroke: rgba(255, 255, 255, 0.6); stroke-width: 2; stroke-dasharray: 8 6;<span class="Apple-converted-space"> </span></p>
-<p class="p1"><span class="Apple-converted-space">        </span>}</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>/* --- 상단 컨트롤 패널 --- */</p>
-<p class="p1"><span class="Apple-converted-space">        </span>#control-panel {<span class="Apple-converted-space"> </span></p>
-<p class="p1"><span class="Apple-converted-space">            </span>position: absolute; top: 20px; left: 50%; transform: translateX(-50%);</p>
-<p class="p1"><span class="Apple-converted-space">            </span>padding: 12px 15px; background: rgba(255, 255, 255, 0.85);<span class="Apple-converted-space"> </span></p>
-<p class="p1"><span class="Apple-converted-space">            </span>backdrop-filter: blur(5px); border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);</p>
-<p class="p1"><span class="Apple-converted-space">            </span>display: flex; flex-direction: column; gap: 8px; z-index: 100; color: #333; min-width: 350px;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>}</p>
-<p class="p2"><span class="Apple-converted-space">        </span></p>
-<p class="p1"><span class="Apple-converted-space">        </span>/* --- 양쪽 항해 일지 패널 --- */</p>
-<p class="p1"><span class="Apple-converted-space">        </span>.log-panel {</p>
-<p class="p1"><span class="Apple-converted-space">            </span>position: absolute; top: 20px; width: 150px;<span class="Apple-converted-space"> </span></p>
-<p class="p1"><span class="Apple-converted-space">            </span>background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(5px); border-radius: 12px;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>box-shadow: 0 4px 15px rgba(0,0,0,0.2); padding: 12px;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>display: flex; flex-direction: column; gap: 8px; z-index: 100; color: #333;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>}</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>#log-panel-cw { left: 15px; border-top: 4px solid #ff0844; }</p>
-<p class="p1"><span class="Apple-converted-space">        </span>#log-panel-ccw { right: 15px; border-top: 4px solid #999; }</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>.log-panel h3 { margin: 0; font-size: 14px; text-align: center; border-bottom: 2px solid #ddd; padding-bottom: 6px; }</p>
-<p class="p2"><span class="Apple-converted-space">        </span></p>
-<p class="p1"><span class="Apple-converted-space">        </span>#log-cw-title { color: #ff0844; }</p>
-<p class="p1"><span class="Apple-converted-space">        </span>#log-ccw-title { color: #555; }</p>
-<p class="p2"><span class="Apple-converted-space">        </span></p>
-<p class="p1"><span class="Apple-converted-space">        </span>.log-content {</p>
-<p class="p1"><span class="Apple-converted-space">            </span>font-size: 11px; line-height: 1.5; background: rgba(255, 255, 255, 0.6);</p>
-<p class="p1"><span class="Apple-converted-space">            </span>padding: 8px; border-radius: 6px; height: 120px; overflow-y: auto;<span class="Apple-converted-space"> </span></p>
-<p class="p1"><span class="Apple-converted-space">            </span>border: 1px inset #ddd; word-break: keep-all;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>}</p>
-<p class="p1"><span class="Apple-converted-space">        </span>.log-content::-webkit-scrollbar { width: 5px; }</p>
-<p class="p1"><span class="Apple-converted-space">        </span>.log-content::-webkit-scrollbar-thumb { background: #bbb; border-radius: 3px; }</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>.control-group { display: flex; gap: 6px; align-items: center; justify-content: center; }</p>
-<p class="p1"><span class="Apple-converted-space">        </span>.divider { border-top: 1px solid #ccc; width: 100%; margin: 3px 0; }</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>input, select { padding: 6px; border: 1px solid #ccc; border-radius: 5px; text-align: center; font-weight: bold; font-family: inherit; }</p>
-<p class="p1"><span class="Apple-converted-space">        </span>select { cursor: pointer; }</p>
-<p class="p2"><span class="Apple-converted-space">        </span></p>
-<p class="p1"><span class="Apple-converted-space">        </span>button { padding: 6px 12px; cursor: pointer; border: none; border-radius: 5px; color: white; font-weight: bold; transition: transform 0.1s, opacity 0.2s; flex-grow: 1; font-size: 13px; }</p>
-<p class="p1"><span class="Apple-converted-space">        </span>button:hover { opacity: 0.9; }</p>
-<p class="p1"><span class="Apple-converted-space">        </span>button:active { transform: scale(0.98); }</p>
-<p class="p2"><span class="Apple-converted-space">        </span></p>
-<p class="p1"><span class="Apple-converted-space">        </span>.btn-add { background-color: #2e7d32; flex-grow: 0; }</p>
-<p class="p1"><span class="Apple-converted-space">        </span>.btn-del { background-color: #c62828; flex-grow: 0; }</p>
-<p class="p1"><span class="Apple-converted-space">        </span>.btn-view { background-color: #455a64; flex-grow: 0; }</p>
-<p class="p1"><span class="Apple-converted-space">        </span>.btn-cw { background-image: linear-gradient(to right, #ff0844 0%, #ffb199 100%); }</p>
-<p class="p1"><span class="Apple-converted-space">        </span>.btn-ccw { background-image: linear-gradient(to right, #d5d4d0 0%, #eeeeec 100%); color: #333; text-shadow: none; }</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>/* --- 침몰 기록 모달 --- */</p>
-<p class="p1"><span class="Apple-converted-space">        </span>#modal-overlay {</p>
-<p class="p1"><span class="Apple-converted-space">            </span>display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>background: rgba(0,0,0,0.4); z-index: 999;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>}</p>
-<p class="p1"><span class="Apple-converted-space">        </span>#sink-modal {</p>
-<p class="p1"><span class="Apple-converted-space">            </span>display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);</p>
-<p class="p1"><span class="Apple-converted-space">            </span>background: rgba(255, 255, 255, 0.95); padding: 20px 30px; border-radius: 15px;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>box-shadow: 0 5px 25px rgba(0,0,0,0.4); z-index: 1000; color: #333;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>min-width: 250px; max-height: 70vh; overflow-y: auto; text-align: center;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>}</p>
-<p class="p1"><span class="Apple-converted-space">        </span>#sink-modal h2 { margin-top: 0; color: #c62828; font-size: 18px; border-bottom: 2px solid #ddd; padding-bottom: 10px; }</p>
-<p class="p1"><span class="Apple-converted-space">        </span>#sink-list { list-style: none; padding: 0; margin: 15px 0; font-size: 14px; line-height: 1.8; text-align: left; }</p>
-<p class="p1"><span class="Apple-converted-space">        </span>#sink-list li { border-bottom: 1px dashed #ccc; padding: 5px 0; }</p>
-<p class="p1"><span class="Apple-converted-space">        </span>#sink-list li::before { content: '🌊 '; }</p>
-<p class="p1"><span class="Apple-converted-space">        </span>.btn-close { background-color: #333; margin-top: 10px; width: 100%; color: white; }</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>#ocean-map { position: relative; width: 100vw; height: 100vh; z-index: 10; overflow: hidden; }</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>.island {</p>
-<p class="p1"><span class="Apple-converted-space">            </span>position: absolute; width: 85px; height: 85px;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>background-image: linear-gradient(to top, #0ba360 0%, #3cba92 100%);<span class="Apple-converted-space"> </span></p>
-<p class="p1"><span class="Apple-converted-space">            </span>border: 3px solid #1a661a;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>border-radius: 50% 60% 50% 70% / 60% 50% 70% 50%;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>display: flex; align-items: center; justify-content: center;<span class="Apple-converted-space"> </span></p>
-<p class="p1"><span class="Apple-converted-space">            </span>font-weight: bold; font-size: 14px; color: white; text-shadow: 1px 1px 2px rgba(0,0,0,0.5);</p>
-<p class="p1"><span class="Apple-converted-space">            </span>box-shadow: 3px 5px 15px rgba(0,0,0,0.3);</p>
-<p class="p1"><span class="Apple-converted-space">            </span>transition: all 0.8s ease; z-index: 10;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>}</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>.item {</p>
-<p class="p1"><span class="Apple-converted-space">            </span>position: absolute; width: 56px; height: 40px;<span class="Apple-converted-space"> </span></p>
-<p class="p1"><span class="Apple-converted-space">            </span>cursor: default; z-index: 50;<span class="Apple-converted-space"> </span></p>
-<p class="p1"><span class="Apple-converted-space">            </span>display: flex; align-items: center; justify-content: center;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>transition: left 1s ease-in-out, top 1s ease-in-out;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>}</p>
-<p class="p2"><span class="Apple-converted-space">        </span></p>
-<p class="p1"><span class="Apple-converted-space">        </span>.boat-body {</p>
-<p class="p1"><span class="Apple-converted-space">            </span>position: absolute; width: 100%; height: 100%;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>z-index: -1; box-shadow: 0 4px 8px rgba(0,0,0,0.4);</p>
-<p class="p1"><span class="Apple-converted-space">        </span>}</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>.boat-name {</p>
-<p class="p1"><span class="Apple-converted-space">            </span>font-size: 11px; font-weight: bold; z-index: 1; pointer-events: none;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 48px;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>}</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>/* --- 술라바: 붉은 조개껍질 (시계방향) --- */</p>
-<p class="p1"><span class="Apple-converted-space">        </span>.item-cw .boat-body {<span class="Apple-converted-space"> </span></p>
-<p class="p1"><span class="Apple-converted-space">            </span>background-image: linear-gradient(to top, #ff0844 0%, #ffb199 100%);</p>
-<p class="p1"><span class="Apple-converted-space">            </span>border: 2px solid #d32f2f;<span class="Apple-converted-space"> </span></p>
-<p class="p1"><span class="Apple-converted-space">            </span>border-radius: 50% 50% 50% 10%; /* 조개 모양 */</p>
-<p class="p1"><span class="Apple-converted-space">        </span>}<span class="Apple-converted-space"> </span></p>
-<p class="p1"><span class="Apple-converted-space">        </span>.item-cw .boat-name { color: white; text-shadow: 1px 1px 3px rgba(0,0,0,0.8); }</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>/* --- 음왈리: 하얀 직사각형 네모 (반시계방향) --- */</p>
-<p class="p1"><span class="Apple-converted-space">        </span>.item-ccw .boat-body {<span class="Apple-converted-space"> </span></p>
-<p class="p1"><span class="Apple-converted-space">            </span>background-image: linear-gradient(to top, #d5d4d0 0%, #d5d4d0 1%, #eeeeec 31%, #efeeec 75%, #e9e9e7 100%);</p>
-<p class="p1"><span class="Apple-converted-space">            </span>border: 2px solid #aaa;<span class="Apple-converted-space"> </span></p>
-<p class="p1"><span class="Apple-converted-space">            </span>border-radius: 4px; /* 직사각형 */</p>
-<p class="p1"><span class="Apple-converted-space">        </span>}<span class="Apple-converted-space"> </span></p>
-<p class="p1"><span class="Apple-converted-space">        </span>.item-ccw .boat-name { color: #333; }</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;/style&gt;</p>
-<p class="p1">&lt;/head&gt;</p>
-<p class="p1">&lt;body&gt;</p>
-<p class="p2"><br></p>
-<p class="p1">&lt;div class="wave-container"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;div class="wave wave1"&gt;&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;div class="wave wave2"&gt;&lt;/div&gt;</p>
-<p class="p1">&lt;/div&gt;</p>
-<p class="p2"><br></p>
-<p class="p1">&lt;svg id="paths-svg"&gt;&lt;/svg&gt;</p>
-<p class="p2"><br></p>
-<p class="p1">&lt;div id="log-panel-cw" class="log-panel"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;h3&gt;📜 &lt;span id="log-cw-title"&gt;술라바&lt;/span&gt; 일지&lt;/h3&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;div id="log-cw-content" class="log-content"&gt;대기 중...&lt;/div&gt;</p>
-<p class="p1">&lt;/div&gt;</p>
-<p class="p2"><br></p>
-<p class="p1">&lt;div id="control-panel"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;div class="control-group"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;input type="text" id="island-name" placeholder="새로운 섬 이름" style="width: 100px;"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;button class="btn-add" onclick="addIsland()"&gt;섬 발견!&lt;/button&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</p>
-<p class="p2"><span class="Apple-converted-space">    </span></p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;div class="control-group"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;select id="island-to-sink" style="width: 110px;"&gt;&lt;/select&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;button class="btn-del" onclick="sinkSelectedIsland()"&gt;섬 침몰&lt;/button&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;button class="btn-view" onclick="toggleSinkRecord()"&gt;침몰 기록&lt;/button&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</p>
-<p class="p2"><span class="Apple-converted-space">    </span></p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;div class="divider"&gt;&lt;/div&gt;</p>
-<p class="p2"><span class="Apple-converted-space">    </span></p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;div class="control-group"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;input type="text" id="input-cw" value="술라바" oninput="updateName('cw', this.value)" style="width: 70px;" placeholder="물건 이름"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;button class="btn-cw" onclick="startVoyage('cw')" id="btn-cw-text"&gt;🐚 출발 (시계)&lt;/button&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;div class="control-group"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;input type="text" id="input-ccw" value="음왈리" oninput="updateName('ccw', this.value)" style="width: 70px;" placeholder="물건 이름"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;button class="btn-ccw" onclick="startVoyage('ccw')" id="btn-ccw-text"&gt;🔲 출발 (반시계)&lt;/button&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;/div&gt;</p>
-<p class="p1">&lt;/div&gt;</p>
-<p class="p2"><br></p>
-<p class="p1">&lt;div id="log-panel-ccw" class="log-panel"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;h3&gt;📜 &lt;span id="log-ccw-title"&gt;음왈리&lt;/span&gt; 일지&lt;/h3&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;div id="log-ccw-content" class="log-content"&gt;대기 중...&lt;/div&gt;</p>
-<p class="p1">&lt;/div&gt;</p>
-<p class="p2"><br></p>
-<p class="p1">&lt;div id="modal-overlay" onclick="toggleSinkRecord()"&gt;&lt;/div&gt;</p>
-<p class="p1">&lt;div id="sink-modal"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;h2&gt;침몰 기록&lt;/h2&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;ul id="sink-list"&gt;&lt;/ul&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;button class="btn-close" onclick="toggleSinkRecord()"&gt;닫기&lt;/button&gt;</p>
-<p class="p1">&lt;/div&gt;</p>
-<p class="p2"><br></p>
-<p class="p1">&lt;div id="ocean-map"&gt;&lt;/div&gt;</p>
-<p class="p2"><br></p>
-<p class="p1">&lt;script&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>const getMoreIrregularOffset = () =&gt; (Math.random() - 0.5) * 80;<span class="Apple-converted-space"> </span></p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>let islands = [</p>
-<p class="p1"><span class="Apple-converted-space">        </span>{ name: '제주도', offsetX: getMoreIrregularOffset(), offsetY: getMoreIrregularOffset() },</p>
-<p class="p1"><span class="Apple-converted-space">        </span>{ name: '독도', offsetX: getMoreIrregularOffset(), offsetY: getMoreIrregularOffset() },</p>
-<p class="p1"><span class="Apple-converted-space">        </span>{ name: '울릉도', offsetX: getMoreIrregularOffset(), offsetY: getMoreIrregularOffset() },</p>
-<p class="p1"><span class="Apple-converted-space">        </span>{ name: '거제도', offsetX: getMoreIrregularOffset(), offsetY: getMoreIrregularOffset() }</p>
-<p class="p1"><span class="Apple-converted-space">    </span>];</p>
-<p class="p2"><span class="Apple-converted-space">    </span></p>
-<p class="p1"><span class="Apple-converted-space">    </span>let sunkenIslands = [];</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>const state = {</p>
-<p class="p1"><span class="Apple-converted-space">        </span>cw: { pos: 0, log: [], name: '술라바' },</p>
-<p class="p1"><span class="Apple-converted-space">        </span>ccw: { pos: 0, log: [], name: '음왈리' }</p>
-<p class="p1"><span class="Apple-converted-space">    </span>};</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>let centerX, centerY, baseRadius;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>function updateDropdown() {</p>
-<p class="p1"><span class="Apple-converted-space">        </span>const select = document.getElementById('island-to-sink');</p>
-<p class="p1"><span class="Apple-converted-space">        </span>select.innerHTML = '';</p>
-<p class="p1"><span class="Apple-converted-space">        </span>if (islands.length === 0) {</p>
-<p class="p1"><span class="Apple-converted-space">            </span>select.innerHTML = '&lt;option disabled selected&gt;섬이 없습니다&lt;/option&gt;';</p>
-<p class="p1"><span class="Apple-converted-space">            </span>return;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>}</p>
-<p class="p1"><span class="Apple-converted-space">        </span>islands.forEach((island, index) =&gt; {</p>
-<p class="p1"><span class="Apple-converted-space">            </span>const opt = document.createElement('option');</p>
-<p class="p1"><span class="Apple-converted-space">            </span>opt.value = index;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>opt.text = island.name;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>select.add(opt);</p>
-<p class="p1"><span class="Apple-converted-space">        </span>});</p>
-<p class="p1"><span class="Apple-converted-space">    </span>}</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>function sinkSelectedIsland() {</p>
-<p class="p1"><span class="Apple-converted-space">        </span>const select = document.getElementById('island-to-sink');</p>
-<p class="p1"><span class="Apple-converted-space">        </span>if (islands.length === 0 || !select.value) return;</p>
-<p class="p2"><span class="Apple-converted-space">        </span></p>
-<p class="p1"><span class="Apple-converted-space">        </span>const index = parseInt(select.value);</p>
-<p class="p1"><span class="Apple-converted-space">        </span>const sunkIsland = islands.splice(index, 1)[0];<span class="Apple-converted-space"> </span></p>
-<p class="p2"><span class="Apple-converted-space">        </span></p>
-<p class="p1"><span class="Apple-converted-space">        </span>const time = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });</p>
-<p class="p1"><span class="Apple-converted-space">        </span>sunkenIslands.push(`${sunkIsland.name} (${time})`);</p>
-<p class="p2"><span class="Apple-converted-space">        </span></p>
-<p class="p1"><span class="Apple-converted-space">        </span>['cw', 'ccw'].forEach(key =&gt; {</p>
-<p class="p1"><span class="Apple-converted-space">            </span>if (state[key].pos === index) {</p>
-<p class="p1"><span class="Apple-converted-space">                </span>state[key].pos = 0;<span class="Apple-converted-space"> </span></p>
-<p class="p1"><span class="Apple-converted-space">                </span>if (islands.length &gt; 0) {</p>
-<p class="p1"><span class="Apple-converted-space">                    </span>state[key].log.push(`[🚨 긴급 대피] ➔ ${islands[0].name}`);</p>
-<p class="p1"><span class="Apple-converted-space">                </span>}</p>
-<p class="p1"><span class="Apple-converted-space">            </span>} else if (state[key].pos &gt; index) {</p>
-<p class="p1"><span class="Apple-converted-space">                </span>state[key].pos -= 1;<span class="Apple-converted-space"> </span></p>
-<p class="p1"><span class="Apple-converted-space">            </span>}</p>
-<p class="p1"><span class="Apple-converted-space">        </span>});</p>
-<p class="p2"><span class="Apple-converted-space">        </span></p>
-<p class="p1"><span class="Apple-converted-space">        </span>render();</p>
-<p class="p1"><span class="Apple-converted-space">        </span>updateSinkModalContent();</p>
-<p class="p1"><span class="Apple-converted-space">    </span>}</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>function toggleSinkRecord() {</p>
-<p class="p1"><span class="Apple-converted-space">        </span>const modal = document.getElementById('sink-modal');</p>
-<p class="p1"><span class="Apple-converted-space">        </span>const overlay = document.getElementById('modal-overlay');</p>
-<p class="p1"><span class="Apple-converted-space">        </span>const isShowing = modal.style.display === 'block';</p>
-<p class="p1"><span class="Apple-converted-space">        </span>if (!isShowing) updateSinkModalContent();<span class="Apple-converted-space"> </span></p>
-<p class="p1"><span class="Apple-converted-space">        </span>modal.style.display = isShowing ? 'none' : 'block';</p>
-<p class="p1"><span class="Apple-converted-space">        </span>overlay.style.display = isShowing ? 'none' : 'block';</p>
-<p class="p1"><span class="Apple-converted-space">    </span>}</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>function updateSinkModalContent() {</p>
-<p class="p1"><span class="Apple-converted-space">        </span>const list = document.getElementById('sink-list');</p>
-<p class="p1"><span class="Apple-converted-space">        </span>if (sunkenIslands.length === 0) {</p>
-<p class="p1"><span class="Apple-converted-space">            </span>list.innerHTML = "&lt;li style='border:none; text-align:center;'&gt;아직 바다 밑으로 가라앉은 섬이 없습니다.&lt;/li&gt;";</p>
-<p class="p1"><span class="Apple-converted-space">        </span>} else {</p>
-<p class="p1"><span class="Apple-converted-space">            </span>list.innerHTML = sunkenIslands.map(record =&gt; `&lt;li&gt;${record}&lt;/li&gt;`).join('');</p>
-<p class="p1"><span class="Apple-converted-space">        </span>}</p>
-<p class="p1"><span class="Apple-converted-space">    </span>}</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>function updateName(key, newName) {</p>
-<p class="p1"><span class="Apple-converted-space">        </span>state[key].name = newName || (key === 'cw' ? '술라바' : '음왈리');</p>
-<p class="p1"><span class="Apple-converted-space">        </span>const el = document.getElementById(`item-${key}`);</p>
-<p class="p1"><span class="Apple-converted-space">        </span>if(el) el.querySelector('.boat-name').innerText = state[key].name;</p>
-<p class="p2"><span class="Apple-converted-space">        </span></p>
-<p class="p1"><span class="Apple-converted-space">        </span>const btn = document.getElementById(`btn-${key}-text`);</p>
-<p class="p1"><span class="Apple-converted-space">        </span>const icon = key === 'cw' ? '🐚' : '🔲';</p>
-<p class="p1"><span class="Apple-converted-space">        </span>const dirText = key === 'cw' ? ' (시계)' : ' (반시계)';</p>
-<p class="p1"><span class="Apple-converted-space">        </span>if(btn) btn.innerText = `${icon} 출발${dirText}`;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>const logTitle = document.getElementById(`log-${key}-title`);</p>
-<p class="p1"><span class="Apple-converted-space">        </span>if(logTitle) logTitle.innerText = state[key].name;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>}</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>function updateLogPanel() {</p>
-<p class="p1"><span class="Apple-converted-space">        </span>['cw', 'ccw'].forEach(key =&gt; {</p>
-<p class="p1"><span class="Apple-converted-space">            </span>const contentDiv = document.getElementById(`log-${key}-content`);</p>
-<p class="p1"><span class="Apple-converted-space">            </span>if (state[key].log.length &gt; 0) {</p>
-<p class="p1"><span class="Apple-converted-space">                </span>contentDiv.innerHTML = state[key].log.join('&lt;br&gt;➔ ');<span class="Apple-converted-space"> </span></p>
-<p class="p1"><span class="Apple-converted-space">            </span>} else {</p>
-<p class="p1"><span class="Apple-converted-space">                </span>contentDiv.innerHTML = '아직 출발하지 않았습니다.';</p>
-<p class="p1"><span class="Apple-converted-space">            </span>}</p>
-<p class="p1"><span class="Apple-converted-space">            </span>contentDiv.scrollTop = contentDiv.scrollHeight;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>});</p>
-<p class="p1"><span class="Apple-converted-space">    </span>}</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>function updateDimensions() {</p>
-<p class="p1"><span class="Apple-converted-space">        </span>const paddingTop = 180; <span class="Apple-converted-space">   </span></p>
-<p class="p1"><span class="Apple-converted-space">        </span>const paddingBottom = 120;<span class="Apple-converted-space"> </span></p>
-<p class="p1"><span class="Apple-converted-space">        </span>const paddingSide = 200;<span class="Apple-converted-space">   </span></p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>const safeWidth = window.innerWidth - (paddingSide * 2);</p>
-<p class="p1"><span class="Apple-converted-space">        </span>const safeHeight = window.innerHeight - paddingTop - paddingBottom;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>centerX = paddingSide + (safeWidth / 2);</p>
-<p class="p1"><span class="Apple-converted-space">        </span>centerY = paddingTop + (safeHeight / 2);</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>baseRadius = Math.min(safeWidth, safeHeight) * 0.35;<span class="Apple-converted-space"> </span></p>
-<p class="p1"><span class="Apple-converted-space">        </span>if(baseRadius &lt; 100) baseRadius = 100;<span class="Apple-converted-space"> </span></p>
-<p class="p1"><span class="Apple-converted-space">    </span>}</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>function updatePaths() {</p>
-<p class="p1"><span class="Apple-converted-space">        </span>const svg = document.getElementById('paths-svg');</p>
-<p class="p1"><span class="Apple-converted-space">        </span>svg.innerHTML = '';<span class="Apple-converted-space"> </span></p>
-<p class="p1"><span class="Apple-converted-space">        </span>if (islands.length &lt; 2) return;<span class="Apple-converted-space"> </span></p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>let pointsString = "";</p>
-<p class="p1"><span class="Apple-converted-space">        </span>for (let i = 0; i &lt; islands.length; i++) {</p>
-<p class="p1"><span class="Apple-converted-space">            </span>const center = getIslandCenter(i);</p>
-<p class="p1"><span class="Apple-converted-space">            </span>pointsString += `${center.x},${center.y} `;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>}</p>
-<p class="p1"><span class="Apple-converted-space">        </span>const firstCenter = getIslandCenter(0);</p>
-<p class="p1"><span class="Apple-converted-space">        </span>pointsString += `${firstCenter.x},${firstCenter.y}`;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>const polyline = document.createElementNS("http://www.w3.org/2000/svg", "polyline");</p>
-<p class="p1"><span class="Apple-converted-space">        </span>polyline.setAttribute("points", pointsString);</p>
-<p class="p1"><span class="Apple-converted-space">        </span>polyline.setAttribute("class", "route-line");</p>
-<p class="p1"><span class="Apple-converted-space">        </span>svg.appendChild(polyline);</p>
-<p class="p1"><span class="Apple-converted-space">    </span>}</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>// --- 섬 가운데 글씨를 가리지 않도록 위치 계산 로직 변경 ---</p>
-<p class="p1"><span class="Apple-converted-space">    </span>function getItemTargetPoint(key, index) {</p>
-<p class="p1"><span class="Apple-converted-space">        </span>const center = getIslandCenter(index);</p>
-<p class="p1"><span class="Apple-converted-space">        </span>// 술라바(cw)는 섬의 위쪽 테두리로, 음왈리(ccw)는 섬의 아래쪽 테두리로 고정 배치</p>
-<p class="p1"><span class="Apple-converted-space">        </span>if (key === 'cw') {</p>
-<p class="p1"><span class="Apple-converted-space">            </span>return { x: center.x, y: center.y - 45 }; // 섬 중앙에서 45px 위쪽</p>
-<p class="p1"><span class="Apple-converted-space">        </span>} else {</p>
-<p class="p1"><span class="Apple-converted-space">            </span>return { x: center.x, y: center.y + 45 }; // 섬 중앙에서 45px 아래쪽</p>
-<p class="p1"><span class="Apple-converted-space">        </span>}</p>
-<p class="p1"><span class="Apple-converted-space">    </span>}</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>function render(movingItem = null) {</p>
-<p class="p1"><span class="Apple-converted-space">        </span>updateDimensions();<span class="Apple-converted-space"> </span></p>
-<p class="p1"><span class="Apple-converted-space">        </span>updateDropdown();</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>const ocean = document.getElementById('ocean-map');</p>
-<p class="p2"><span class="Apple-converted-space">        </span></p>
-<p class="p1"><span class="Apple-converted-space">        </span>islands.forEach((island, i) =&gt; {</p>
-<p class="p1"><span class="Apple-converted-space">            </span>let imgId = `island-${i}`;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>let div = document.getElementById(imgId);</p>
-<p class="p1"><span class="Apple-converted-space">            </span>if (!div) {</p>
-<p class="p1"><span class="Apple-converted-space">                </span>div = document.createElement('div');</p>
-<p class="p1"><span class="Apple-converted-space">                </span>div.id = imgId; div.className = 'island';</p>
-<p class="p1"><span class="Apple-converted-space">                </span>ocean.appendChild(div);</p>
-<p class="p1"><span class="Apple-converted-space">            </span>}</p>
-<p class="p1"><span class="Apple-converted-space">            </span>div.innerText = island.name;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>const center = getIslandCenter(i);</p>
-<p class="p1"><span class="Apple-converted-space">            </span>div.style.left = `${center.x - 42.5}px`;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>div.style.top = `${center.y - 42.5}px`;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>});</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>const currentIslandDivs = document.querySelectorAll('.island');</p>
-<p class="p1"><span class="Apple-converted-space">        </span>if (currentIslandDivs.length &gt; islands.length) {</p>
-<p class="p1"><span class="Apple-converted-space">            </span>for (let i = islands.length; i &lt; currentIslandDivs.length; i++) {</p>
-<p class="p1"><span class="Apple-converted-space">                </span>currentIslandDivs[i].remove();</p>
-<p class="p1"><span class="Apple-converted-space">            </span>}</p>
-<p class="p1"><span class="Apple-converted-space">        </span>}</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>updatePaths();</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>if (islands.length &gt; 0) {</p>
-<p class="p1"><span class="Apple-converted-space">            </span>renderItem('cw', 'item-cw', movingItem === 'cw');</p>
-<p class="p1"><span class="Apple-converted-space">            </span>renderItem('ccw', 'item-ccw', movingItem === 'ccw');</p>
-<p class="p1"><span class="Apple-converted-space">        </span>} else {</p>
-<p class="p1"><span class="Apple-converted-space">            </span>document.querySelectorAll('.item').forEach(el =&gt; el.remove());</p>
-<p class="p1"><span class="Apple-converted-space">        </span>}</p>
-<p class="p2"><span class="Apple-converted-space">        </span></p>
-<p class="p1"><span class="Apple-converted-space">        </span>updateLogPanel();</p>
-<p class="p1"><span class="Apple-converted-space">    </span>}</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>function getIslandCenter(index) {</p>
-<p class="p1"><span class="Apple-converted-space">        </span>if (islands.length === 0) return {x: centerX, y: centerY};</p>
-<p class="p1"><span class="Apple-converted-space">        </span>const island = islands[index];</p>
-<p class="p1"><span class="Apple-converted-space">        </span>const angle = (index / islands.length) * (2 * Math.PI) - (Math.PI / 2);</p>
-<p class="p1"><span class="Apple-converted-space">        </span>const x = centerX + (baseRadius + island.offsetX) * Math.cos(angle);</p>
-<p class="p1"><span class="Apple-converted-space">        </span>const y = centerY + (baseRadius + island.offsetY) * Math.sin(angle);</p>
-<p class="p1"><span class="Apple-converted-space">        </span>return { x, y };</p>
-<p class="p1"><span class="Apple-converted-space">    </span>}</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>function renderItem(key, className, isMoving) {</p>
-<p class="p1"><span class="Apple-converted-space">        </span>let elId = `item-${key}`;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>let div = document.getElementById(elId);</p>
-<p class="p1"><span class="Apple-converted-space">        </span>if (!div) {</p>
-<p class="p1"><span class="Apple-converted-space">            </span>div = document.createElement('div');</p>
-<p class="p1"><span class="Apple-converted-space">            </span>div.id = elId;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>div.className = `item ${className}`;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>div.innerHTML = `&lt;div class="boat-body"&gt;&lt;/div&gt;&lt;span class="boat-name"&gt;${state[key].name}&lt;/span&gt;`;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>document.getElementById('ocean-map').appendChild(div);</p>
-<p class="p1"><span class="Apple-converted-space">        </span>} else {</p>
-<p class="p1"><span class="Apple-converted-space">            </span>div.querySelector('.boat-name').innerText = state[key].name;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>}</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>if (isMoving) return;<span class="Apple-converted-space"> </span></p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>div.style.transition = 'left 1s ease-in-out, top 1s ease-in-out';</p>
-<p class="p2"><span class="Apple-converted-space">        </span></p>
-<p class="p1"><span class="Apple-converted-space">        </span>const target = getItemTargetPoint(key, state[key].pos);</p>
-<p class="p1"><span class="Apple-converted-space">        </span>div.style.left = `${target.x - 28}px`;<span class="Apple-converted-space"> </span></p>
-<p class="p1"><span class="Apple-converted-space">        </span>div.style.top = `${target.y - 20}px`;<span class="Apple-converted-space"> </span></p>
-<p class="p1"><span class="Apple-converted-space">    </span>}</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>function startVoyage(direction) {</p>
-<p class="p1"><span class="Apple-converted-space">        </span>if (islands.length &lt; 2) return;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>const item = state[direction];</p>
-<p class="p1"><span class="Apple-converted-space">        </span>const prevPos = item.pos;</p>
-<p class="p2"><span class="Apple-converted-space">        </span></p>
-<p class="p1"><span class="Apple-converted-space">        </span>item.log.push(islands[prevPos].name);</p>
-<p class="p1"><span class="Apple-converted-space">        </span>updateLogPanel();</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>let nextPos;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>if (direction === 'cw') {</p>
-<p class="p1"><span class="Apple-converted-space">            </span>nextPos = (prevPos + 1) % islands.length;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>} else {</p>
-<p class="p1"><span class="Apple-converted-space">            </span>nextPos = (prevPos - 1 + islands.length) % islands.length;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>}</p>
-<p class="p1"><span class="Apple-converted-space">        </span>item.pos = nextPos;<span class="Apple-converted-space"> </span></p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>animateCanoe(direction, prevPos, nextPos);</p>
-<p class="p1"><span class="Apple-converted-space">    </span>}</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>function animateCanoe(key, startIdx, endIdx) {</p>
-<p class="p1"><span class="Apple-converted-space">        </span>const canoe = document.getElementById(`item-${key}`);</p>
-<p class="p1"><span class="Apple-converted-space">        </span>const startPoint = { x: parseFloat(canoe.style.left) + 28, y: parseFloat(canoe.style.top) + 20 };</p>
-<p class="p1"><span class="Apple-converted-space">        </span>const endPoint = getItemTargetPoint(key, endIdx);</p>
-<p class="p2"><span class="Apple-converted-space">        </span></p>
-<p class="p1"><span class="Apple-converted-space">        </span>const controlPoint = {</p>
-<p class="p1"><span class="Apple-converted-space">            </span>x: (startPoint.x + endPoint.x) / 2 + (centerX - (startPoint.x + endPoint.x)/2) * 0.25,</p>
-<p class="p1"><span class="Apple-converted-space">            </span>y: (startPoint.y + endPoint.y) / 2 + (centerY - (startPoint.y + endPoint.y)/2) * 0.25</p>
-<p class="p1"><span class="Apple-converted-space">        </span>};</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>const startTime = performance.now();</p>
-<p class="p1"><span class="Apple-converted-space">        </span>const duration = 1400;<span class="Apple-converted-space"> </span></p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>canoe.style.transition = 'none';</p>
-<p class="p1"><span class="Apple-converted-space">        </span>const boatBody = canoe.querySelector('.boat-body');</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>function step(currentTime) {</p>
-<p class="p1"><span class="Apple-converted-space">            </span>const elapsed = currentTime - startTime;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>const progress = Math.min(elapsed / duration, 1);</p>
-<p class="p1"><span class="Apple-converted-space">            </span>const p = easeInOutQuad(progress);<span class="Apple-converted-space"> </span></p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">            </span>const currentX = (1 - p) * (1 - p) * startPoint.x + 2 * (1 - p) * p * controlPoint.x + p * p * endPoint.x;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>const currentY = (1 - p) * (1 - p) * startPoint.y + 2 * (1 - p) * p * controlPoint.y + p * p * endPoint.y;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">            </span>const nextP = Math.min(progress + 0.01, 1);</p>
-<p class="p1"><span class="Apple-converted-space">            </span>const nextX = (1 - nextP) * (1 - nextP) * startPoint.x + 2 * (1 - nextP) * nextP * controlPoint.x + nextP * nextP * endPoint.x;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>const nextY = (1 - nextP) * (1 - nextP) * startPoint.y + 2 * (1 - nextP) * nextP * controlPoint.y + nextP * nextP * endPoint.y;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>const angle = Math.atan2(nextY - currentY, nextX - currentX) * 180 / Math.PI;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">            </span>canoe.style.left = `${currentX - 28}px`;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>canoe.style.top = `${currentY - 20}px`;</p>
-<p class="p1"><span class="Apple-converted-space">            </span>boatBody.style.transform = `rotate(${angle}deg)`;<span class="Apple-converted-space"> </span></p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">            </span>if (progress &lt; 1) requestAnimationFrame(step);</p>
-<p class="p1"><span class="Apple-converted-space">            </span>else render();</p>
-<p class="p1"><span class="Apple-converted-space">        </span>}</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>render(key);<span class="Apple-converted-space"> </span></p>
-<p class="p1"><span class="Apple-converted-space">        </span>requestAnimationFrame(step);</p>
-<p class="p1"><span class="Apple-converted-space">    </span>}</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>function easeInOutQuad(t) { return t &lt; 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t; }</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>function addIsland() {</p>
-<p class="p1"><span class="Apple-converted-space">        </span>const input = document.getElementById('island-name');</p>
-<p class="p1"><span class="Apple-converted-space">        </span>const name = input.value || `새로운 섬 ${islands.length + 1}`;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>islands.push({ name: name, offsetX: getMoreIrregularOffset(), offsetY: getMoreIrregularOffset() });</p>
-<p class="p1"><span class="Apple-converted-space">        </span>input.value = '';</p>
-<p class="p1"><span class="Apple-converted-space">        </span>render();</p>
-<p class="p1"><span class="Apple-converted-space">    </span>}</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>render();</p>
-<p class="p1"><span class="Apple-converted-space">    </span>window.addEventListener('resize', () =&gt; render());</p>
-<p class="p2"><br></p>
-<p class="p1">&lt;/script&gt;</p>
-<p class="p2"><br></p>
-<p class="p1">&lt;/body&gt;</p>
-<p class="p1">&lt;/html&gt;</p>
+
+<div class="wave-container">
+    <div class="wave wave1"></div>
+    <div class="wave wave2"></div>
+</div>
+
+<svg id="paths-svg"></svg>
+
+<div id="log-panel-cw" class="log-panel">
+    <h3>📜 <span id="log-cw-title">술라바</span> 일지</h3>
+    <div id="log-cw-content" class="log-content">대기 중...</div>
+</div>
+
+<div id="control-panel">
+    <div class="control-group">
+        <input type="text" id="island-name" placeholder="새로운 섬 이름" style="width: 100px;">
+        <button class="btn-add" onclick="addIsland()">섬 발견!</button>
+    </div>
+    
+    <div class="control-group">
+        <select id="island-to-sink" style="width: 110px;"></select>
+        <button class="btn-del" onclick="sinkSelectedIsland()">섬 침몰</button>
+        <button class="btn-view" onclick="toggleSinkRecord()">침몰 기록</button>
+    </div>
+    
+    <div class="divider"></div>
+    
+    <div class="control-group">
+        <input type="text" id="input-cw" value="술라바" oninput="updateName('cw', this.value)" style="width: 70px;" placeholder="물건 이름">
+        <button class="btn-cw" onclick="startVoyage('cw')" id="btn-cw-text">🐚 출발 (시계)</button>
+    </div>
+
+    <div class="control-group">
+        <input type="text" id="input-ccw" value="음왈리" oninput="updateName('ccw', this.value)" style="width: 70px;" placeholder="물건 이름">
+        <button class="btn-ccw" onclick="startVoyage('ccw')" id="btn-ccw-text">🔲 출발 (반시계)</button>
+    </div>
+</div>
+
+<div id="log-panel-ccw" class="log-panel">
+    <h3>📜 <span id="log-ccw-title">음왈리</span> 일지</h3>
+    <div id="log-ccw-content" class="log-content">대기 중...</div>
+</div>
+
+<div id="modal-overlay" onclick="toggleSinkRecord()"></div>
+<div id="sink-modal">
+    <h2>침몰 기록</h2>
+    <ul id="sink-list"></ul>
+    <button class="btn-close" onclick="toggleSinkRecord()">닫기</button>
+</div>
+
+<div id="ocean-map"></div>
+
+<script>
+    const getMoreIrregularOffset = () => (Math.random() - 0.5) * 80; 
+
+    let islands = [
+        { name: '제주도', offsetX: getMoreIrregularOffset(), offsetY: getMoreIrregularOffset() },
+        { name: '독도', offsetX: getMoreIrregularOffset(), offsetY: getMoreIrregularOffset() },
+        { name: '울릉도', offsetX: getMoreIrregularOffset(), offsetY: getMoreIrregularOffset() },
+        { name: '거제도', offsetX: getMoreIrregularOffset(), offsetY: getMoreIrregularOffset() }
+    ];
+    
+    let sunkenIslands = [];
+
+    const state = {
+        cw: { pos: 0, log: [], name: '술라바' },
+        ccw: { pos: 0, log: [], name: '음왈리' }
+    };
+
+    let centerX, centerY, baseRadius;
+
+    function updateDropdown() {
+        const select = document.getElementById('island-to-sink');
+        select.innerHTML = '';
+        if (islands.length === 0) {
+            select.innerHTML = '<option disabled selected>섬이 없습니다</option>';
+            return;
+        }
+        islands.forEach((island, index) => {
+            const opt = document.createElement('option');
+            opt.value = index;
+            opt.text = island.name;
+            select.add(opt);
+        });
+    }
+
+    function sinkSelectedIsland() {
+        const select = document.getElementById('island-to-sink');
+        if (islands.length === 0 || !select.value) return;
+        
+        const index = parseInt(select.value);
+        const sunkIsland = islands.splice(index, 1)[0]; 
+        
+        const time = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        sunkenIslands.push(`${sunkIsland.name} (${time})`);
+        
+        ['cw', 'ccw'].forEach(key => {
+            if (state[key].pos === index) {
+                state[key].pos = 0; 
+                if (islands.length > 0) {
+                    state[key].log.push(`[🚨 긴급 대피] ➔ ${islands[0].name}`);
+                }
+            } else if (state[key].pos > index) {
+                state[key].pos -= 1; 
+            }
+        });
+        
+        render();
+        updateSinkModalContent();
+    }
+
+    function toggleSinkRecord() {
+        const modal = document.getElementById('sink-modal');
+        const overlay = document.getElementById('modal-overlay');
+        const isShowing = modal.style.display === 'block';
+        if (!isShowing) updateSinkModalContent(); 
+        modal.style.display = isShowing ? 'none' : 'block';
+        overlay.style.display = isShowing ? 'none' : 'block';
+    }
+
+    function updateSinkModalContent() {
+        const list = document.getElementById('sink-list');
+        if (sunkenIslands.length === 0) {
+            list.innerHTML = "<li style='border:none; text-align:center;'>아직 바다 밑으로 가라앉은 섬이 없습니다.</li>";
+        } else {
+            list.innerHTML = sunkenIslands.map(record => `<li>${record}</li>`).join('');
+        }
+    }
+
+    function updateName(key, newName) {
+        state[key].name = newName || (key === 'cw' ? '술라바' : '음왈리');
+        const el = document.getElementById(`item-${key}`);
+        if(el) el.querySelector('.boat-name').innerText = state[key].name;
+        
+        const btn = document.getElementById(`btn-${key}-text`);
+        const icon = key === 'cw' ? '🐚' : '🔲';
+        const dirText = key === 'cw' ? ' (시계)' : ' (반시계)';
+        if(btn) btn.innerText = `${icon} 출발${dirText}`;
+
+        const logTitle = document.getElementById(`log-${key}-title`);
+        if(logTitle) logTitle.innerText = state[key].name;
+    }
+
+    function updateLogPanel() {
+        ['cw', 'ccw'].forEach(key => {
+            const contentDiv = document.getElementById(`log-${key}-content`);
+            if (state[key].log.length > 0) {
+                contentDiv.innerHTML = state[key].log.join('<br>➔ '); 
+            } else {
+                contentDiv.innerHTML = '아직 출발하지 않았습니다.';
+            }
+            contentDiv.scrollTop = contentDiv.scrollHeight;
+        });
+    }
+
+    function updateDimensions() {
+        const paddingTop = 180;    
+        const paddingBottom = 120; 
+        const paddingSide = 200;   
+
+        const safeWidth = window.innerWidth - (paddingSide * 2);
+        const safeHeight = window.innerHeight - paddingTop - paddingBottom;
+
+        centerX = paddingSide + (safeWidth / 2);
+        centerY = paddingTop + (safeHeight / 2);
+
+        baseRadius = Math.min(safeWidth, safeHeight) * 0.35; 
+        if(baseRadius < 100) baseRadius = 100; 
+    }
+
+    function updatePaths() {
+        const svg = document.getElementById('paths-svg');
+        svg.innerHTML = ''; 
+        if (islands.length < 2) return; 
+
+        let pointsString = "";
+        for (let i = 0; i < islands.length; i++) {
+            const center = getIslandCenter(i);
+            pointsString += `${center.x},${center.y} `;
+        }
+        const firstCenter = getIslandCenter(0);
+        pointsString += `${firstCenter.x},${firstCenter.y}`;
+
+        const polyline = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
+        polyline.setAttribute("points", pointsString);
+        polyline.setAttribute("class", "route-line");
+        svg.appendChild(polyline);
+    }
+
+    // --- 섬 가운데 글씨를 가리지 않도록 위치 계산 로직 변경 ---
+    function getItemTargetPoint(key, index) {
+        const center = getIslandCenter(index);
+        // 술라바(cw)는 섬의 위쪽 테두리로, 음왈리(ccw)는 섬의 아래쪽 테두리로 고정 배치
+        if (key === 'cw') {
+            return { x: center.x, y: center.y - 45 }; // 섬 중앙에서 45px 위쪽
+        } else {
+            return { x: center.x, y: center.y + 45 }; // 섬 중앙에서 45px 아래쪽
+        }
+    }
+
+    function render(movingItem = null) {
+        updateDimensions(); 
+        updateDropdown();
+
+        const ocean = document.getElementById('ocean-map');
+        
+        islands.forEach((island, i) => {
+            let imgId = `island-${i}`;
+            let div = document.getElementById(imgId);
+            if (!div) {
+                div = document.createElement('div');
+                div.id = imgId; div.className = 'island';
+                ocean.appendChild(div);
+            }
+            div.innerText = island.name;
+            const center = getIslandCenter(i);
+            div.style.left = `${center.x - 42.5}px`;
+            div.style.top = `${center.y - 42.5}px`;
+        });
+
+        const currentIslandDivs = document.querySelectorAll('.island');
+        if (currentIslandDivs.length > islands.length) {
+            for (let i = islands.length; i < currentIslandDivs.length; i++) {
+                currentIslandDivs[i].remove();
+            }
+        }
+
+        updatePaths();
+
+        if (islands.length > 0) {
+            renderItem('cw', 'item-cw', movingItem === 'cw');
+            renderItem('ccw', 'item-ccw', movingItem === 'ccw');
+        } else {
+            document.querySelectorAll('.item').forEach(el => el.remove());
+        }
+        
+        updateLogPanel();
+    }
+
+    function getIslandCenter(index) {
+        if (islands.length === 0) return {x: centerX, y: centerY};
+        const island = islands[index];
+        const angle = (index / islands.length) * (2 * Math.PI) - (Math.PI / 2);
+        const x = centerX + (baseRadius + island.offsetX) * Math.cos(angle);
+        const y = centerY + (baseRadius + island.offsetY) * Math.sin(angle);
+        return { x, y };
+    }
+
+    function renderItem(key, className, isMoving) {
+        let elId = `item-${key}`;
+        let div = document.getElementById(elId);
+        if (!div) {
+            div = document.createElement('div');
+            div.id = elId;
+            div.className = `item ${className}`;
+            div.innerHTML = `<div class="boat-body"></div><span class="boat-name">${state[key].name}</span>`;
+            document.getElementById('ocean-map').appendChild(div);
+        } else {
+            div.querySelector('.boat-name').innerText = state[key].name;
+        }
+
+        if (isMoving) return; 
+
+        div.style.transition = 'left 1s ease-in-out, top 1s ease-in-out';
+        
+        const target = getItemTargetPoint(key, state[key].pos);
+        div.style.left = `${target.x - 28}px`; 
+        div.style.top = `${target.y - 20}px`; 
+    }
+
+    function startVoyage(direction) {
+        if (islands.length < 2) return;
+        const item = state[direction];
+        const prevPos = item.pos;
+        
+        item.log.push(islands[prevPos].name);
+        updateLogPanel();
+
+        let nextPos;
+        if (direction === 'cw') {
+            nextPos = (prevPos + 1) % islands.length;
+        } else {
+            nextPos = (prevPos - 1 + islands.length) % islands.length;
+        }
+        item.pos = nextPos; 
+
+        animateCanoe(direction, prevPos, nextPos);
+    }
+
+    function animateCanoe(key, startIdx, endIdx) {
+        const canoe = document.getElementById(`item-${key}`);
+        const startPoint = { x: parseFloat(canoe.style.left) + 28, y: parseFloat(canoe.style.top) + 20 };
+        const endPoint = getItemTargetPoint(key, endIdx);
+        
+        const controlPoint = {
+            x: (startPoint.x + endPoint.x) / 2 + (centerX - (startPoint.x + endPoint.x)/2) * 0.25,
+            y: (startPoint.y + endPoint.y) / 2 + (centerY - (startPoint.y + endPoint.y)/2) * 0.25
+        };
+
+        const startTime = performance.now();
+        const duration = 1400; 
+
+        canoe.style.transition = 'none';
+        const boatBody = canoe.querySelector('.boat-body');
+
+        function step(currentTime) {
+            const elapsed = currentTime - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            const p = easeInOutQuad(progress); 
+
+            const currentX = (1 - p) * (1 - p) * startPoint.x + 2 * (1 - p) * p * controlPoint.x + p * p * endPoint.x;
+            const currentY = (1 - p) * (1 - p) * startPoint.y + 2 * (1 - p) * p * controlPoint.y + p * p * endPoint.y;
+
+            const nextP = Math.min(progress + 0.01, 1);
+            const nextX = (1 - nextP) * (1 - nextP) * startPoint.x + 2 * (1 - nextP) * nextP * controlPoint.x + nextP * nextP * endPoint.x;
+            const nextY = (1 - nextP) * (1 - nextP) * startPoint.y + 2 * (1 - nextP) * nextP * controlPoint.y + nextP * nextP * endPoint.y;
+            const angle = Math.atan2(nextY - currentY, nextX - currentX) * 180 / Math.PI;
+
+            canoe.style.left = `${currentX - 28}px`;
+            canoe.style.top = `${currentY - 20}px`;
+            boatBody.style.transform = `rotate(${angle}deg)`; 
+
+            if (progress < 1) requestAnimationFrame(step);
+            else render();
+        }
+
+        render(key); 
+        requestAnimationFrame(step);
+    }
+
+    function easeInOutQuad(t) { return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t; }
+
+    function addIsland() {
+        const input = document.getElementById('island-name');
+        const name = input.value || `새로운 섬 ${islands.length + 1}`;
+        islands.push({ name: name, offsetX: getMoreIrregularOffset(), offsetY: getMoreIrregularOffset() });
+        input.value = '';
+        render();
+    }
+
+    render();
+    window.addEventListener('resize', () => render());
+
+</script>
+
 </body>
 </html>
