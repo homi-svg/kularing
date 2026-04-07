@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>쿨라(Kula) 링 시뮬레이터 - 멀티플레이</title>
+    <title>쿨라(Kula) 링 시뮬레이터 - 멀티플레이 (이름 수정 기능)</title>
     <style>
         body { font-family: 'Malgun Gothic', sans-serif; margin: 0; padding: 0; overflow: hidden; width: 100vw; height: 100vh; color: white; background-image: linear-gradient(to right, #4facfe 0%, #00f2fe 100%); }
         .wave-container { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; overflow: hidden; z-index: 1; pointer-events: none; }
@@ -60,8 +60,11 @@
         #sink-modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px; border-radius: 15px; z-index: 1000; color: #333; min-width: 250px; text-align: center; }
 
         #ocean-map { position: relative; width: 100vw; height: 100vh; z-index: 10; overflow: hidden; }
-        .island { position: absolute; width: 80px; height: 80px; background-image: linear-gradient(to top, #0ba360 0%, #3cba92 100%); border: 3px solid #1a661a; border-radius: 50% 60% 50% 70% / 60% 50% 70% 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; color: white; text-shadow: 1px 1px 2px rgba(0,0,0,0.5); box-shadow: 3px 5px 15px rgba(0,0,0,0.3); transition: all 0.8s ease; z-index: 10; }
+        /* 섬에 cursor: pointer 추가 (클릭 가능하다는 시각적 효과) */
+        .island { position: absolute; width: 80px; height: 80px; background-image: linear-gradient(to top, #0ba360 0%, #3cba92 100%); border: 3px solid #1a661a; border-radius: 50% 60% 50% 70% / 60% 50% 70% 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; color: white; text-shadow: 1px 1px 2px rgba(0,0,0,0.5); box-shadow: 3px 5px 15px rgba(0,0,0,0.3); transition: all 0.8s ease; z-index: 10; cursor: pointer; }
+        .island:hover { transform: scale(1.05); } /* 마우스 올렸을 때 살짝 커지는 효과 */
         .sunken-island { position: absolute; width: 80px; height: 80px; background: rgba(0, 77, 128, 0.3); border: 2px dashed rgba(255, 255, 255, 0.3); border-radius: 50% 60% 50% 70% / 60% 50% 70% 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; color: rgba(255, 255, 255, 0.35); text-decoration: line-through; box-shadow: inset 2px 3px 10px rgba(0,0,0,0.2); z-index: 4; pointer-events: none; }
+        
         .item { position: absolute; width: 50px; height: 35px; cursor: default; z-index: 50; display: flex; align-items: center; justify-content: center; transition: left 1s ease-in-out, top 1s ease-in-out; }
         .boat-body { position: absolute; width: 100%; height: 100%; z-index: -1; box-shadow: 0 4px 8px rgba(0,0,0,0.4); }
         .boat-name { font-size: 10px; font-weight: bold; z-index: 1; pointer-events: none; }
@@ -98,7 +101,7 @@
         <h4><서태평양의 항해자들 이용법></h4>
         쿨라는 목걸이(술라바)와 팔찌(음왈리)가 각각 시계방향과 시계 반대방향으로 돌아가는 멜라네시아 섬들 간의 교역입니다.<br><br>
         상단의 <b>[새 바다 만들기]</b>를 눌러 고유한 링크를 친구들과 공유해 보세요.<br><br>
-        새로운 섬을 발견하면 새 섬이 생성되고, 특정한 섬을 침몰시킬 수 있습니다. [기록]을 클릭하면 섬 침몰 기록을 볼 수 있습니다.<br><br>
+        새로운 섬을 발견하면 새 섬이 생성되고, 특정한 섬을 침몰시킬 수 있습니다. <b>지도 위 섬을 클릭하면 이름을 수정할 수 있으며,</b> [기록]을 클릭하면 섬 침몰 기록을 볼 수 있습니다.<br><br>
         술라바와 음왈리의 이름은 변경할 수 있고, 각각 [출발]을 누르면 항해를 시작합니다. 되돌리기 버튼을 누르면 직전에 있던 섬으로 물건들이 돌아갑니다.
     </div>
     <button class="btn-manual" onclick="toggleManual()">매뉴얼 📖</button>
@@ -157,7 +160,6 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
     import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
-    // 사용자 제공 Firebase 설정
     const firebaseConfig = {
       apiKey: "AIzaSyCdZBp5-MFLnQRnERv7szIk6m3VGZoDozs",
       authDomain: "kula-ring.firebaseapp.com",
@@ -172,20 +174,14 @@
 
     let islands = [], sunkenIslands = [], state = {};
     let centerX, centerY, baseRadiusX, baseRadiusY;
-    
-    // 현재 URL에서 ?id= 파라미터 가져오기
     let currentId = new URLSearchParams(window.location.search).get('id');
 
-    // --- 데이터 로드 및 초기화 ---
     async function initDB() {
         if (!currentId) {
-            // 접속 시 ID가 없으면 새로운 ID 발급 후 리다이렉트
-            const newId = Math.random().toString(36).substr(2, 6); // 6자리 랜덤 생성
+            const newId = Math.random().toString(36).substr(2, 6);
             islands = [{ name: '키리위나' }, { name: '도부' }, { name: '투비투비' }];
             sunkenIslands = [];
             state = { cw: { pos: 0, log: [], name: '술라바' }, ccw: { pos: 1, log: [], name: '음왈리' } };
-            
-            // 새 데이터 DB에 1회 저장 후 이동
             await setDoc(doc(db, "projects", newId), { islands, sunkenIslands, state });
             window.location.href = `?id=${newId}`;
             return;
@@ -193,7 +189,6 @@
 
         document.getElementById('display-id').innerText = currentId;
 
-        // DB에서 데이터 가져오기
         try {
             const docSnap = await getDoc(doc(db, "projects", currentId));
             if (docSnap.exists()) {
@@ -208,10 +203,9 @@
             }
         } catch (e) {
             console.error(e);
-            alert("데이터베이스 연결 권한 에러! (파이어베이스 보안 규칙을 수정해주세요)");
+            alert("데이터베이스 연결 권한 에러! (파이어베이스 보안 규칙을 확인하세요)");
         }
 
-        // 로딩 화면 숨기고 화면 그리기
         document.getElementById('loading-screen').style.opacity = '0';
         setTimeout(() => document.getElementById('loading-screen').style.display = 'none', 500);
 
@@ -222,21 +216,17 @@
         render();
     }
 
-    // --- DB에 저장 (이벤트 발생 시마다 호출) ---
     window.saveToDB = async () => {
         if (!currentId) return;
-        // 비동기로 저장 (화면 끊김 방지)
         setDoc(doc(db, "projects", currentId), { islands, sunkenIslands, state }).catch(e => console.error("Save Error:", e));
     };
 
-    // --- UI/UX 글로벌 함수 등록 (HTML onclick에서 쓰기 위해) ---
     window.copyLink = () => {
         navigator.clipboard.writeText(window.location.href);
         alert("초대 링크가 복사되었습니다! 친구에게 공유해 보세요.");
     };
 
     window.createNewService = () => {
-        // ID 파라미터를 지우고 접속하면 새로 생성됨
         window.location.href = window.location.pathname; 
     };
 
@@ -245,7 +235,29 @@
         content.style.display = content.style.display === 'block' ? 'none' : 'block';
     };
 
-    // --- 렌더링 및 시뮬레이션 핵심 로직 ---
+    // --- 섬 이름 수정 (클릭 시 작동) ---
+    window.renameIsland = (index) => {
+        const currentName = islands[index].name;
+        const newName = prompt(`'${currentName}' 섬의 새로운 이름을 입력하세요:`, currentName);
+        
+        if (newName && newName.trim() !== "" && newName !== currentName) {
+            const trimmedName = newName.trim();
+            
+            // 항해 일지(log)의 과거 이름도 전부 새 이름으로 업데이트 (되돌리기 버그 방지)
+            ['cw', 'ccw'].forEach(k => {
+                state[k].log = state[k].log.map(entry => {
+                    if (entry === currentName) return trimmedName;
+                    if (entry === `[🚨 긴급 대피] ${currentName}`) return `[🚨 긴급 대피] ${trimmedName}`;
+                    return entry;
+                });
+            });
+
+            islands[index].name = trimmedName;
+            window.saveToDB();
+            render();
+        }
+    };
+
     function updateDimensions() {
         const isMobile = window.innerWidth <= 768;
         const pTop = 180, pBottom = 180, pSide = isMobile ? 60 : 200;
@@ -275,7 +287,14 @@
 
         islands.forEach((is, i) => {
             let div = document.getElementById(`island-${i}`);
-            if(!div) { div = document.createElement('div'); div.id = `island-${i}`; div.className = 'island'; map.appendChild(div); }
+            if(!div) { 
+                div = document.createElement('div'); 
+                div.id = `island-${i}`; 
+                div.className = 'island'; 
+                // 섬 클릭 이벤트 리스너 추가
+                div.onclick = () => window.renameIsland(i);
+                map.appendChild(div); 
+            }
             div.innerText = is.name;
             const pos = getIslandPos(i, islands.length);
             div.style.left = `${pos.x - 40}px`; div.style.top = `${pos.y - 40}px`;
@@ -401,7 +420,6 @@
         m.style.display = o.style.display = isShow ? 'none' : 'block';
     };
 
-    // 앱 시작
     initDB();
     window.addEventListener('resize', () => render());
 
