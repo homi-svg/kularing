@@ -3,18 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>쿨라(Kula) 링 시뮬레이터 - 긴급 대피 및 매뉴얼</title>
+    <title>쿨라(Kula) 링 시뮬레이터 - 멀티플레이</title>
     <style>
-        body { 
-            font-family: 'Malgun Gothic', sans-serif; 
-            margin: 0; padding: 0;
-            overflow: hidden; 
-            width: 100vw; height: 100vh;
-            color: white;
-            background-image: linear-gradient(to right, #4facfe 0%, #00f2fe 100%);
-        }
-
-        /* --- 전체 화면 귀여운 물결 효과 --- */
+        body { font-family: 'Malgun Gothic', sans-serif; margin: 0; padding: 0; overflow: hidden; width: 100vw; height: 100vh; color: white; background-image: linear-gradient(to right, #4facfe 0%, #00f2fe 100%); }
         .wave-container { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; overflow: hidden; z-index: 1; pointer-events: none; }
         .wave { position: absolute; top: -50vh; left: -50vw; width: 200vw; height: 200vh; background-repeat: repeat; }
         .wave1 { background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 100"><path fill="none" stroke="%23ffffff" stroke-width="2.5" stroke-opacity="0.3" d="M0,50 C100,80 100,20 200,50 C300,80 300,20 400,50"></path></svg>'); background-size: 400px 100px; animation: wave1-move 12s linear infinite; z-index: 10; }
@@ -25,7 +16,7 @@
         #paths-svg { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 5; }
         .route-line { fill: none; stroke: rgba(255, 255, 255, 0.6); stroke-width: 2; stroke-dasharray: 8 6; transition: all 0.8s ease; }
 
-        /* --- 📂 프로젝트 매니저 --- */
+        /* --- 🌐 접속 관리 패널 --- */
         #project-manager {
             position: absolute; bottom: 20px; left: 20px;
             padding: 15px; background: rgba(255, 255, 255, 0.9);
@@ -34,23 +25,10 @@
             z-index: 200; color: #333; display: flex; flex-direction: column; gap: 10px;
             width: 220px;
         }
-        #project-manager h3 { margin: 0; font-size: 14px; color: #2e7d32; border-bottom: 1px solid #ddd; padding-bottom: 5px; }
-
-        /* --- 컨트롤 패널 --- */
-        #control-panel { 
-            position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
-            padding: 12px 15px; background: rgba(255, 255, 255, 0.85); 
-            backdrop-filter: blur(5px); border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-            display: flex; flex-direction: column; gap: 8px; z-index: 100; color: #333; min-width: 320px;
-        }
+        #project-manager h3 { margin: 0; font-size: 14px; color: #1565c0; border-bottom: 1px solid #ddd; padding-bottom: 5px; }
         
-        /* --- 양쪽 항해 일지 패널 --- */
-        .log-panel {
-            position: absolute; top: 20px; width: 150px; 
-            background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(5px); border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2); padding: 12px;
-            display: flex; flex-direction: column; gap: 8px; z-index: 100; color: #333;
-        }
+        #control-panel { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); padding: 12px 15px; background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(5px); border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); display: flex; flex-direction: column; gap: 8px; z-index: 100; color: #333; min-width: 320px; }
+        .log-panel { position: absolute; top: 20px; width: 150px; background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(5px); border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); padding: 12px; display: flex; flex-direction: column; gap: 8px; z-index: 100; color: #333; }
         #log-panel-cw { left: 15px; border-top: 4px solid #ff0844; }
         #log-panel-ccw { right: 15px; border-top: 4px solid #999; }
         .log-panel h3 { margin: 0; font-size: 14px; text-align: center; border-bottom: 2px solid #ddd; padding-bottom: 6px; }
@@ -58,19 +36,14 @@
         .log-content::-webkit-scrollbar { width: 5px; }
         .log-content::-webkit-scrollbar-thumb { background: #bbb; border-radius: 3px; }
 
-        /* --- 📖 매뉴얼 버튼 및 내용 --- */
+        /* --- 📖 매뉴얼 버튼 --- */
         #manual-container { position: absolute; bottom: 20px; right: 20px; z-index: 200; display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
-        #manual-content { 
-            display: none; width: 260px; background: rgba(255, 255, 255, 0.95); 
-            color: #333; padding: 15px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); 
-            font-size: 13px; line-height: 1.6; border-top: 5px solid #00f2fe;
-        }
+        #manual-content { display: none; width: 260px; background: rgba(255, 255, 255, 0.95); color: #333; padding: 15px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); font-size: 13px; line-height: 1.6; border-top: 5px solid #00f2fe; }
         #manual-content h4 { margin: 0 0 10px 0; color: #1565c0; border-bottom: 1px solid #ddd; padding-bottom: 5px; }
         .btn-manual { background: #1565c0; padding: 10px 15px; border-radius: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
 
         .control-group { display: flex; gap: 6px; align-items: center; justify-content: center; }
         .divider { border-top: 1px solid #ccc; width: 100%; margin: 3px 0; }
-
         input, select { padding: 6px; border: 1px solid #ccc; border-radius: 5px; text-align: center; font-weight: bold; font-family: inherit; font-size: 13px; }
         button { padding: 6px 10px; cursor: pointer; border: none; border-radius: 5px; color: white; font-weight: bold; transition: transform 0.1s, opacity 0.2s; font-size: 13px; white-space: nowrap; }
         button:hover { opacity: 0.9; }
@@ -95,6 +68,9 @@
         .item-cw .boat-body { background-image: linear-gradient(to top, #ff0844 0%, #ffb199 100%); border: 2px solid #d32f2f; border-radius: 50% 50% 50% 10%; } 
         .item-ccw .boat-body { background-image: linear-gradient(to top, #d5d4d0 0%, #eeeeec 100%); border: 2px solid #aaa; border-radius: 4px; } 
 
+        /* 로딩 화면 */
+        #loading-screen { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #00f2fe; z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; color: white; font-weight: bold; font-size: 20px; transition: opacity 0.5s; }
+
         @media (max-width: 768px) {
             #project-manager { top: 0; left: 0; bottom: auto; width: 100vw; border-radius: 0 0 15px 15px; flex-direction: row; flex-wrap: wrap; justify-content: space-between; align-items: center; padding: 10px; box-sizing: border-box; }
             #control-panel { top: auto; bottom: 0; left: 0; transform: none; width: 100vw; border-radius: 15px 15px 0 0; box-sizing: border-box; min-width: 100vw; padding: 12px; padding-bottom: 25px; }
@@ -105,6 +81,10 @@
     </style>
 </head>
 <body>
+
+<div id="loading-screen">
+    바다의 지도를 불러오는 중... 🛶
+</div>
 
 <div class="wave-container">
     <div class="wave wave1"></div>
@@ -117,7 +97,7 @@
     <div id="manual-content">
         <h4><서태평양의 항해자들 이용법></h4>
         쿨라는 목걸이(술라바)와 팔찌(음왈리)가 각각 시계방향과 시계 반대방향으로 돌아가는 멜라네시아 섬들 간의 교역입니다.<br><br>
-        이름을 지정한 새로운 쿨라 프로젝트를 생성하면 항해를 시작할 수 있습니다.<br><br>
+        상단의 <b>[새 바다 만들기]</b>를 눌러 고유한 링크를 친구들과 공유해 보세요.<br><br>
         새로운 섬을 발견하면 새 섬이 생성되고, 특정한 섬을 침몰시킬 수 있습니다. [기록]을 클릭하면 섬 침몰 기록을 볼 수 있습니다.<br><br>
         술라바와 음왈리의 이름은 변경할 수 있고, 각각 [출발]을 누르면 항해를 시작합니다. 되돌리기 버튼을 누르면 직전에 있던 섬으로 물건들이 돌아갑니다.
     </div>
@@ -125,12 +105,11 @@
 </div>
 
 <div id="project-manager">
-    <h3>📂 내 쿨라 프로젝트</h3>
-    <select id="project-selector" onchange="switchProject(this.value)" style="flex-grow: 1; max-width: 120px;"></select>
-    <div class="control-group" style="margin-left: auto;">
-        <input type="text" id="new-project-name" placeholder="새 이름" style="width: 70px; font-size: 11px;">
-        <button class="btn-add" onclick="createNewProject()" style="padding: 6px;">+</button>
-        <button class="btn-del" onclick="deleteCurrentProject()" style="padding: 6px;">🗑️</button>
+    <h3>🌐 접속 중인 바다</h3>
+    <div style="font-size: 12px; margin-bottom: 5px;">ID: <span id="display-id" style="color:#00f2fe; font-weight:bold;"></span></div>
+    <div class="control-group">
+        <button class="btn-cw" onclick="copyLink()" style="flex-grow:1; padding: 8px;">초대 링크 복사</button>
+        <button class="btn-view" onclick="createNewService()" style="padding: 8px;">새 바다 만들기</button>
     </div>
 </div>
 
@@ -146,7 +125,6 @@
 
 <div id="control-panel">
     <div class="control-group">
-        <button class="btn-undo" onclick="resetState()" title="모든 데이터 지우기" style="background:#ff9800; padding:6px 8px;">초기화</button>
         <input type="text" id="island-name" placeholder="섬 이름" style="width: 90px;">
         <button class="btn-add" onclick="addNewIsland()">발견!</button>
         <select id="island-to-sink" style="width: 90px;"></select>
@@ -155,12 +133,12 @@
     </div>
     <div class="divider"></div>
     <div class="control-group">
-        <input type="text" id="input-cw" oninput="updateName('cw', this.value)" style="width: 80px;">
+        <input type="text" id="input-cw" oninput="updateNameUI('cw', this.value)" onchange="saveToDB()" style="width: 80px;">
         <button class="btn-cw" onclick="startVoyage('cw')" id="btn-cw-text">🐚 출발 ↻</button>
         <button class="btn-undo" onclick="undoVoyage('cw')">↩️</button>
     </div>
     <div class="control-group">
-        <input type="text" id="input-ccw" oninput="updateName('ccw', this.value)" style="width: 80px;">
+        <input type="text" id="input-ccw" oninput="updateNameUI('ccw', this.value)" onchange="saveToDB()" style="width: 80px;">
         <button class="btn-ccw" onclick="startVoyage('ccw')" id="btn-ccw-text">🔲 출발 ↺</button>
         <button class="btn-undo" onclick="undoVoyage('ccw')">↩️</button>
     </div>
@@ -175,86 +153,99 @@
 
 <div id="ocean-map"></div>
 
-<script>
-    let currentProject = "", projectList = [], islands = [], sunkenIslands = [], state = {};
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+    import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+    // 사용자 제공 Firebase 설정
+    const firebaseConfig = {
+      apiKey: "AIzaSyCdZBp5-MFLnQRnERv7szIk6m3VGZoDozs",
+      authDomain: "kula-ring.firebaseapp.com",
+      projectId: "kula-ring",
+      storageBucket: "kula-ring.firebasestorage.app",
+      messagingSenderId: "292069081606",
+      appId: "1:292069081606:web:67f26976a261c16b4ef987"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    let islands = [], sunkenIslands = [], state = {};
     let centerX, centerY, baseRadiusX, baseRadiusY;
+    
+    // 현재 URL에서 ?id= 파라미터 가져오기
+    let currentId = new URLSearchParams(window.location.search).get('id');
 
-    function saveProjectData() {
-        if (!currentProject) return;
-        localStorage.setItem(`kula_data_${currentProject}`, JSON.stringify({ islands, sunkenIslands, state }));
-        localStorage.setItem('kula_current_project', currentProject);
-        localStorage.setItem('kula_project_list', JSON.stringify(projectList));
-    }
-
-    function initProjectManager() {
-        updateDimensions();
-        const savedList = localStorage.getItem('kula_project_list');
-        projectList = savedList ? JSON.parse(savedList) : ["기본 바다"];
-        const last = localStorage.getItem('kula_current_project');
-        currentProject = (last && projectList.includes(last)) ? last : projectList[0];
-        updateProjectSelector();
-        loadProjectData(currentProject);
-    }
-
-    function updateProjectSelector() {
-        const sel = document.getElementById('project-selector');
-        sel.innerHTML = '';
-        projectList.forEach(p => {
-            const opt = document.createElement('option');
-            opt.value = p; opt.text = p;
-            if(p === currentProject) opt.selected = true;
-            sel.add(opt);
-        });
-    }
-
-    function createNewProject() {
-        const name = document.getElementById('new-project-name').value.trim();
-        if (!name || projectList.includes(name)) return alert("중복되거나 유효하지 않은 이름입니다.");
-        projectList.push(name);
-        saveProjectData();
-        document.getElementById('new-project-name').value = '';
-        switchProject(name);
-    }
-
-    function switchProject(name) {
-        if (currentProject) saveProjectData();
-        currentProject = name;
-        loadProjectData(name);
-        saveProjectData();
-        updateProjectSelector();
-        render();
-    }
-
-    function deleteCurrentProject() {
-        if (projectList.length <= 1) return alert("최소 한 개의 프로젝트는 남겨두어야 합니다.");
-        if (!confirm(`'${currentProject}' 프로젝트를 영구 삭제하시겠습니까?`)) return;
-        localStorage.removeItem(`kula_data_${currentProject}`);
-        projectList = projectList.filter(p => p !== currentProject);
-        localStorage.setItem('kula_project_list', JSON.stringify(projectList));
-        switchProject(projectList[0]);
-    }
-
-    function loadProjectData(name) {
-        const saved = localStorage.getItem(`kula_data_${name}`);
-        if (saved) {
-            const parsed = JSON.parse(saved);
-            islands = parsed.islands;
-            sunkenIslands = parsed.sunkenIslands || [];
-            state = parsed.state;
-        } else {
+    // --- 데이터 로드 및 초기화 ---
+    async function initDB() {
+        if (!currentId) {
+            // 접속 시 ID가 없으면 새로운 ID 발급 후 리다이렉트
+            const newId = Math.random().toString(36).substr(2, 6); // 6자리 랜덤 생성
             islands = [{ name: '키리위나' }, { name: '도부' }, { name: '투비투비' }];
             sunkenIslands = [];
             state = { cw: { pos: 0, log: [], name: '술라바' }, ccw: { pos: 1, log: [], name: '음왈리' } };
+            
+            // 새 데이터 DB에 1회 저장 후 이동
+            await setDoc(doc(db, "projects", newId), { islands, sunkenIslands, state });
+            window.location.href = `?id=${newId}`;
+            return;
         }
+
+        document.getElementById('display-id').innerText = currentId;
+
+        // DB에서 데이터 가져오기
+        try {
+            const docSnap = await getDoc(doc(db, "projects", currentId));
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                islands = data.islands || [];
+                sunkenIslands = data.sunkenIslands || [];
+                state = data.state || { cw: { pos: 0, log: [], name: '술라바' }, ccw: { pos: 1, log: [], name: '음왈리' } };
+            } else {
+                alert("삭제되었거나 존재하지 않는 바다입니다! 새로운 바다를 생성합니다.");
+                window.location.href = "?id=";
+                return;
+            }
+        } catch (e) {
+            console.error(e);
+            alert("데이터베이스 연결 권한 에러! (파이어베이스 보안 규칙을 수정해주세요)");
+        }
+
+        // 로딩 화면 숨기고 화면 그리기
+        document.getElementById('loading-screen').style.opacity = '0';
+        setTimeout(() => document.getElementById('loading-screen').style.display = 'none', 500);
+
         document.getElementById('input-cw').value = state.cw.name;
         document.getElementById('input-ccw').value = state.ccw.name;
+        window.updateNameUI('cw', state.cw.name);
+        window.updateNameUI('ccw', state.ccw.name);
+        render();
     }
 
-    function toggleManual() {
+    // --- DB에 저장 (이벤트 발생 시마다 호출) ---
+    window.saveToDB = async () => {
+        if (!currentId) return;
+        // 비동기로 저장 (화면 끊김 방지)
+        setDoc(doc(db, "projects", currentId), { islands, sunkenIslands, state }).catch(e => console.error("Save Error:", e));
+    };
+
+    // --- UI/UX 글로벌 함수 등록 (HTML onclick에서 쓰기 위해) ---
+    window.copyLink = () => {
+        navigator.clipboard.writeText(window.location.href);
+        alert("초대 링크가 복사되었습니다! 친구에게 공유해 보세요.");
+    };
+
+    window.createNewService = () => {
+        // ID 파라미터를 지우고 접속하면 새로 생성됨
+        window.location.href = window.location.pathname; 
+    };
+
+    window.toggleManual = () => {
         const content = document.getElementById('manual-content');
         content.style.display = content.style.display === 'block' ? 'none' : 'block';
-    }
+    };
 
+    // --- 렌더링 및 시뮬레이션 핵심 로직 ---
     function updateDimensions() {
         const isMobile = window.innerWidth <= 768;
         const pTop = 180, pBottom = 180, pSide = isMobile ? 60 : 200;
@@ -273,6 +264,7 @@
         updateDimensions();
         updateDropdown();
         const map = document.getElementById('ocean-map');
+        
         document.querySelectorAll('.sunken-island').forEach(el => el.remove());
         sunkenIslands.forEach(sunk => {
             let div = document.createElement('div');
@@ -312,25 +304,33 @@
         updateLogPanel();
     }
 
-    function startVoyage(key) {
+    window.addNewIsland = () => {
+        const input = document.getElementById('island-name');
+        islands.push({ name: input.value || `섬 ${islands.length + 1}` });
+        input.value = ''; 
+        render();
+        window.saveToDB(); 
+    };
+
+    window.startVoyage = (key) => {
         if(islands.length < 2) return;
         const prev = state[key].pos;
         state[key].log.push(islands[prev].name);
         state[key].pos = key === 'cw' ? (prev + 1) % islands.length : (prev - 1 + islands.length) % islands.length;
-        saveProjectData();
+        window.saveToDB();
         animate(key, prev, state[key].pos);
-    }
+    };
 
-    function undoVoyage(key) {
+    window.undoVoyage = (key) => {
         if(state[key].log.length === 0) return;
         const last = state[key].log.pop();
         const target = islands.findIndex(is => is.name === last.replace('[🚨 긴급 대피] ', ''));
         if(target === -1) return alert("섬이 침몰했습니다.");
         const current = state[key].pos;
         state[key].pos = target;
-        saveProjectData();
+        window.saveToDB();
         animate(key, current, target);
-    }
+    };
 
     function animate(key, startIdx, endIdx) {
         const el = document.getElementById(`item-${key}`);
@@ -349,11 +349,12 @@
         requestAnimationFrame(step);
     }
 
-    function updateName(key, val) {
+    window.updateNameUI = (key, val) => {
         state[key].name = val || (key === 'cw' ? '술라바' : '음왈리');
+        const btn = document.getElementById(`btn-${key}-text`);
+        btn.innerText = `${key === 'cw' ? '🐚' : '🔲'} 출발 ${key === 'cw' ? '↻' : '↺'}`;
         document.getElementById(`log-${key}-title`).innerText = state[key].name;
-        saveProjectData();
-    }
+    };
 
     function updateLogPanel() {
         ['cw', 'ccw'].forEach(k => {
@@ -364,18 +365,12 @@
         });
     }
 
-    function addNewIsland() {
-        const input = document.getElementById('island-name');
-        islands.push({ name: input.value || `섬 ${islands.length + 1}` });
-        input.value = ''; saveProjectData(); render();
-    }
-
     function updateDropdown() {
         const sel = document.getElementById('island-to-sink');
         sel.innerHTML = islands.map((is, i) => `<option value="${i}">${is.name}</option>`).join('');
     }
 
-    function sinkSelectedIsland() {
+    window.sinkSelectedIsland = () => {
         const idx = parseInt(document.getElementById('island-to-sink').value);
         if (isNaN(idx) || islands.length <= 1) return alert("섬이 최소 1개는 있어야 합니다.");
         const sunk = islands.splice(idx, 1)[0];
@@ -383,7 +378,6 @@
 
         ['cw', 'ccw'].forEach(k => {
             if(state[k].pos === idx) {
-                // 1) 침몰 시 직전 섬으로 대피 로직
                 let targetPos = 0;
                 if (state[k].log.length > 0) {
                     const lastIslandName = state[k].log[state[k].log.length - 1].replace('[🚨 긴급 대피] ', '');
@@ -396,23 +390,21 @@
                 state[k].pos--;
             }
         });
-        saveProjectData(); render();
-    }
+        window.saveToDB(); 
+        render();
+    };
 
-    function resetState() {
-        if(confirm("모든 데이터가 삭제됩니다. 초기화할까요?")) { localStorage.clear(); location.reload(); }
-    }
-
-    function toggleSinkRecord() {
+    window.toggleSinkRecord = () => {
         const m = document.getElementById('sink-modal'), o = document.getElementById('modal-overlay');
         const isShow = m.style.display === 'block';
         if(!isShow) document.getElementById('sink-list').innerHTML = sunkenIslands.map(s => `<li>${s.name} <span style="font-size:10px; color:#999;">(${s.time})</span></li>`).join('') || "기록 없음";
         m.style.display = o.style.display = isShow ? 'none' : 'block';
-    }
+    };
 
-    initProjectManager();
+    // 앱 시작
+    initDB();
     window.addEventListener('resize', () => render());
-</script>
 
+</script>
 </body>
 </html>
