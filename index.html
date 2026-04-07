@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>쿨라(Kula) 링 시뮬레이터</title>
+    <title>쿨라(Kula) 링 시뮬레이터 </title>
     <style>
         body { font-family: 'Malgun Gothic', sans-serif; margin: 0; padding: 0; overflow: hidden; width: 100vw; height: 100vh; color: white; background-image: linear-gradient(to right, #4facfe 0%, #00f2fe 100%); }
         .wave-container { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; overflow: hidden; z-index: 1; pointer-events: none; }
@@ -85,15 +85,16 @@
         .modal-box h2 { margin-top: 0; color: #1565c0; font-size: 18px; border-bottom: 2px solid #ddd; padding-bottom: 10px; }
         #sink-list li { border-bottom: 1px dashed #ccc; padding: 8px 0; clear: both; overflow: hidden; }
         
+        /* 섬 에디터 전용 스타일 */
+        .btn-move { background: #4facfe; color: white; border: none; padding: 8px 12px; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        .btn-move:hover { background: #00f2fe; }
+
         #ocean-map { position: relative; width: 100vw; height: 100vh; z-index: 10; overflow: hidden; }
-        
-        /* ★ 섬에 touch-action 추가 (드래그 시 스크롤 방지) */
-        .island { position: absolute; width: 80px; height: 80px; background-image: linear-gradient(to top, #0ba360 0%, #3cba92 100%); border: 3px solid #1a661a; border-radius: 50% 60% 50% 70% / 60% 50% 70% 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; color: white; text-shadow: 1px 1px 2px rgba(0,0,0,0.5); box-shadow: 3px 5px 15px rgba(0,0,0,0.3); z-index: 10; cursor: grab; touch-action: none; }
-        .island:active { cursor: grabbing; }
-        
+        .island { position: absolute; width: 80px; height: 80px; background-image: linear-gradient(to top, #0ba360 0%, #3cba92 100%); border: 3px solid #1a661a; border-radius: 50% 60% 50% 70% / 60% 50% 70% 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; color: white; text-shadow: 1px 1px 2px rgba(0,0,0,0.5); box-shadow: 3px 5px 15px rgba(0,0,0,0.3); transition: all 0.8s ease; z-index: 10; cursor: pointer; }
+        .island:hover { transform: scale(1.05); } 
         .sunken-island { position: absolute; width: 80px; height: 80px; background: rgba(0, 77, 128, 0.3); border: 2px dashed rgba(255, 255, 255, 0.3); border-radius: 50% 60% 50% 70% / 60% 50% 70% 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; color: rgba(255, 255, 255, 0.35); text-decoration: line-through; box-shadow: inset 2px 3px 10px rgba(0,0,0,0.2); z-index: 4; pointer-events: none; }
         
-        .item { position: absolute; width: 50px; height: 35px; cursor: default; z-index: 50; display: flex; align-items: center; justify-content: center; transition: left 1s ease-in-out, top 1s ease-in-out; pointer-events: none; }
+        .item { position: absolute; width: 50px; height: 35px; cursor: default; z-index: 50; display: flex; align-items: center; justify-content: center; transition: left 1s ease-in-out, top 1s ease-in-out; }
         .boat-body { position: absolute; width: 100%; height: 100%; z-index: -1; box-shadow: 0 4px 8px rgba(0,0,0,0.4); }
         .boat-name { font-size: 10px; font-weight: bold; z-index: 1; pointer-events: none; }
         .item-cw .boat-body { background-image: linear-gradient(to top, #ff0844 0%, #ffb199 100%); border: 2px solid #d32f2f; border-radius: 50% 50% 50% 10%; } 
@@ -138,10 +139,10 @@
     <div id="manual-container">
         <div id="manual-content">
             <h4><서태평양의 항해자들 이용법></h4>
-            쿨라는 목걸이(술라바)와 팔찌(음왈리)가 각각 시계방향과 반시계방향으로 돌아가는 교역입니다.<br><br>
-            새로운 섬을 발견하거나, 기존 섬을 침몰시킬 수 있습니다. [기록]을 눌러 침몰한 섬을 <b>원래 자리로 살려낼 수 있습니다.</b><br><br>
-            <b>★ 섬 관리 및 이동:</b> 지도 위 섬을 <b>클릭</b>하면 이름을 변경할 수 있습니다. 섬을 <b>꾹 눌러 다른 섬 위로 드래그</b>하면 두 섬의 자리를 바꿀 수 있습니다.<br><br>
-            물건 이름 옆의 드롭다운으로 물건의 위치를 즉시 이동시킬 수 있습니다.
+            쿨라는 목걸이(술라바)와 팔찌(음왈리)가 각각 시계방향과 시계 반대방향으로 돌아가는 교역입니다.<br><br>
+            새로운 섬을 발견하면 새 섬이 생성되고, 섬을 침몰시킬 수 있습니다. [기록]을 클릭하면 섬 침몰 기록을 보거나 <b>원래 자리로 살려낼 수 있습니다.</b><br><br>
+            <b>지도 위 섬을 클릭하면 [섬 관리 창]이 열리며, 이름 변경 및 주변 섬과의 순서 교체(이동)가 가능합니다.</b><br><br>
+            각 물건의 이름 옆 드롭다운으로 현재 위치를 즉시 이동시킬 수 있으며, [출발]을 누르면 항해를 시작합니다.
         </div>
         <button class="btn-manual" onclick="toggleManual()">매뉴얼 📖</button>
     </div>
@@ -199,13 +200,19 @@
     </div>
 
     <div id="island-edit-modal" class="modal-box">
-        <h2>섬 이름 변경</h2>
+        <h2>섬 관리</h2>
         <input type="hidden" id="edit-island-index">
         <div style="display: flex; gap: 5px; justify-content: center; margin-bottom: 15px;">
             <input type="text" id="edit-island-name" placeholder="섬 이름" style="flex-grow: 1;">
-            <button class="btn-view" onclick="applyRename()">저장</button>
+            <button class="btn-view" onclick="applyRename()">이름 변경</button>
         </div>
-        <button onclick="closeAllModals()" style="background:#333; width:100%; margin-top:10px; padding: 10px; color: white; border: none; border-radius: 5px; cursor: pointer;">닫기</button>
+        <hr style="border-top: 1px dashed #ccc; border-bottom: none; margin: 15px 0;">
+        <p style="font-size: 13px; font-weight: bold; margin-bottom: 10px; color: #666;">위치 순서 조정 (스와프)</p>
+        <div style="display: flex; gap: 10px; justify-content: center;">
+            <button class="btn-move" onclick="moveIsland(-1)">◀ 반시계 방향</button>
+            <button class="btn-move" onclick="moveIsland(1)">시계 방향 ▶</button>
+        </div>
+        <button onclick="closeAllModals()" style="background:#333; width:100%; margin-top:20px; padding: 10px; color: white; border: none; border-radius: 5px; cursor: pointer;">닫기</button>
     </div>
 
     <div id="ocean-map"></div>
@@ -339,6 +346,7 @@
         document.getElementById('modal-overlay').style.display = 'none';
     };
 
+    // --- 🏝️ 섬 에디터 (이름 및 순서 변경) ---
     window.openIslandEdit = (idx) => {
         document.getElementById('edit-island-index').value = idx;
         document.getElementById('edit-island-name').value = islands[idx].name;
@@ -363,8 +371,36 @@
             islands[idx].name = newName;
             window.saveToDB();
             render();
-            window.closeAllModals();
+            alert("이름이 변경되었습니다.");
         }
+    };
+
+    window.moveIsland = (direction) => {
+        const idx = parseInt(document.getElementById('edit-island-index').value);
+        let targetIdx = idx + direction;
+        
+        if (targetIdx < 0) targetIdx = islands.length - 1;
+        if (targetIdx >= islands.length) targetIdx = 0;
+
+        if (idx === targetIdx) return;
+
+        // 배열 요소 스와프
+        const temp = islands[idx];
+        islands[idx] = islands[targetIdx];
+        islands[targetIdx] = temp;
+
+        // 배가 해당 섬들에 정박 중이었다면 함께 이동
+        ['cw', 'ccw'].forEach(k => {
+            if (state[k].pos === idx) {
+                state[k].pos = targetIdx;
+            } else if (state[k].pos === targetIdx) {
+                state[k].pos = idx;
+            }
+        });
+
+        document.getElementById('edit-island-index').value = targetIdx;
+        window.saveToDB();
+        render();
     };
 
     window.setItemPos = (key, idx) => {
@@ -404,97 +440,15 @@
             let div = document.getElementById(`island-${i}`);
             if(!div) { 
                 div = document.createElement('div'); div.id = `island-${i}`; div.className = 'island'; 
-                map.appendChild(div); 
+                div.onclick = () => window.openIslandEdit(i); map.appendChild(div); 
             }
             div.innerText = is.name;
             const pos = getIslandPos(i, islands.length);
-            
-            // ★ 드래그 앤 드롭을 위한 포인터 이벤트 추가 ★
-            div.onpointerdown = (e) => {
-                e.preventDefault(); 
-                div.setPointerCapture(e.pointerId);
-                div.dataset.dragging = "false";
-                div.dataset.startX = e.clientX;
-                div.dataset.startY = e.clientY;
-                div.dataset.origLeft = pos.x - 40;
-                div.dataset.origTop = pos.y - 40;
-                div.style.zIndex = 1000;
-                div.style.transition = "none"; 
-            };
-
-            div.onpointermove = (e) => {
-                if (div.hasPointerCapture(e.pointerId)) {
-                    const dx = e.clientX - parseFloat(div.dataset.startX);
-                    const dy = e.clientY - parseFloat(div.dataset.startY);
-                    
-                    // 약간의 움직임(5px 이상)이 있으면 드래그로 판정
-                    if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
-                        div.dataset.dragging = "true";
-                    }
-                    
-                    if (div.dataset.dragging === "true") {
-                        div.style.left = `${parseFloat(div.dataset.origLeft) + dx}px`;
-                        div.style.top = `${parseFloat(div.dataset.origTop) + dy}px`;
-                        div.style.transform = "scale(1.1)";
-                    }
-                }
-            };
-
-            div.onpointerup = (e) => {
-                div.releasePointerCapture(e.pointerId);
-                div.style.zIndex = 10;
-                div.style.transition = "all 0.8s ease";
-                div.style.transform = "";
-
-                if (div.dataset.dragging !== "true") {
-                    // 단순 클릭일 경우 이름 변경 창 열기
-                    window.openIslandEdit(i);
-                } else {
-                    // 드래그 후 놓았을 때 스와프 로직
-                    const dropX = e.clientX;
-                    const dropY = e.clientY;
-                    let targetIdx = -1;
-                    let minDist = 70; // 다른 섬 위로 판정할 거리 (스냅 범위)
-
-                    islands.forEach((otherIs, otherI) => {
-                        if (i !== otherI) {
-                            const otherPos = getIslandPos(otherI, islands.length);
-                            const dist = Math.hypot(dropX - otherPos.x, dropY - otherPos.y);
-                            if (dist < minDist) {
-                                minDist = dist;
-                                targetIdx = otherI;
-                            }
-                        }
-                    });
-
-                    if (targetIdx !== -1) {
-                        // 두 섬의 배열 순서 스와프
-                        const temp = islands[i];
-                        islands[i] = islands[targetIdx];
-                        islands[targetIdx] = temp;
-
-                        // 배의 위치 번호도 함께 교환
-                        ['cw', 'ccw'].forEach(k => {
-                            if (state[k].pos === i) state[k].pos = targetIdx;
-                            else if (state[k].pos === targetIdx) state[k].pos = i;
-                        });
-                        window.saveToDB();
-                    }
-                    render(); // 화면 원위치 & 선 다시 그리기
-                }
-            };
-            
-            // 일반 렌더링 시 위치 잡기 (드래그 중이 아닐 때만)
-            if (div.dataset.dragging !== "true") {
-                div.style.left = `${pos.x - 40}px`; div.style.top = `${pos.y - 40}px`;
-            }
-            
+            div.style.left = `${pos.x - 40}px`; div.style.top = `${pos.y - 40}px`;
             is.currX = pos.x; is.currY = pos.y;
         });
-        
         document.querySelectorAll('.island').forEach(el => { if(parseInt(el.id.split('-')[1]) >= islands.length) el.remove(); });
 
-        // 점선 경로 업데이트
         const svg = document.getElementById('paths-svg');
         svg.innerHTML = '';
         if(islands.length > 1) {
@@ -504,7 +458,6 @@
             line.setAttribute("points", pts); line.setAttribute("class", "route-line"); svg.appendChild(line);
         }
 
-        // 물건 렌더링
         ['cw', 'ccw'].forEach(key => {
             let div = document.getElementById(`item-${key}`);
             if(!div) { div = document.createElement('div'); div.id = `item-${key}`; div.className = `item item-${key}`; div.innerHTML = `<div class="boat-body"></div><span class="boat-name"></span>`; map.appendChild(div); }
@@ -587,6 +540,7 @@
         if (isNaN(idx) || islands.length <= 1) return alert("섬이 최소 1개는 있어야 합니다.");
         const sunk = islands.splice(idx, 1)[0];
         
+        // 침몰할 때의 오리지널 인덱스 저장
         sunkenIslands.push({ 
             name: sunk.name, x: sunk.currX, y: sunk.currY, 
             time: new Date().toLocaleString(),
@@ -610,6 +564,7 @@
         window.saveToDB(); render();
     };
 
+    // --- ♻️ 섬 원래 위치로 부활시키기 ---
     window.reviveIsland = (index) => {
         const revived = sunkenIslands.splice(index, 1)[0];
         
@@ -617,8 +572,10 @@
         if (targetIdx > islands.length) targetIdx = islands.length;
         if (targetIdx < 0) targetIdx = 0;
 
+        // 원래 위치에 삽입
         islands.splice(targetIdx, 0, { name: revived.name });
 
+        // 섬이 중간에 끼어들었으므로, 뒤쪽에 있던 배의 위치를 +1 보정
         ['cw', 'ccw'].forEach(k => {
             if (state[k].pos >= targetIdx) {
                 state[k].pos++;
