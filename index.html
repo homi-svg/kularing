@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>쿨라(Kula) 링 시뮬레이터 - 위치 지정 기능 추가</title>
+    <title>쿨라(Kula) 링 시뮬레이터 - 섬 부활 기능 추가</title>
     <style>
         body { font-family: 'Malgun Gothic', sans-serif; margin: 0; padding: 0; overflow: hidden; width: 100vw; height: 100vh; color: white; background-image: linear-gradient(to right, #4facfe 0%, #00f2fe 100%); }
         .wave-container { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; overflow: hidden; z-index: 1; pointer-events: none; }
@@ -42,7 +42,7 @@
         }
         .btn-create-kula:hover { transform: scale(1.02); }
 
-        /* --- 전체 메인 UI 래퍼 (초기 숨김) --- */
+        /* --- 전체 메인 UI 래퍼 --- */
         #app-ui { display: none; }
 
         /* --- 🌐 접속 관리 패널 --- */
@@ -84,9 +84,14 @@
         .btn-undo { background-color: #78909c; }
         .btn-cw { background-image: linear-gradient(to right, #ff0844 0%, #ffb199 100%); flex-grow: 1; }
         .btn-ccw { background-image: linear-gradient(to right, #d5d4d0 0%, #eeeeec 100%); color: #333; flex-grow: 1; }
+        
+        /* 모달 내 살리기 버튼 스타일 */
+        .btn-revive { background-color: #0ba360; color: white; border: none; border-radius: 4px; padding: 3px 8px; font-size: 11px; cursor: pointer; float: right; margin-top: -2px; }
+        .btn-revive:hover { background-color: #3cba92; }
 
         #modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.4); z-index: 999; }
-        #sink-modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px; border-radius: 15px; z-index: 1000; color: #333; min-width: 250px; text-align: center; }
+        #sink-modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px; border-radius: 15px; z-index: 1000; color: #333; min-width: 280px; text-align: center; }
+        #sink-list li { border-bottom: 1px dashed #ccc; padding: 8px 0; clear: both; overflow: hidden; }
 
         #ocean-map { position: relative; width: 100vw; height: 100vh; z-index: 10; overflow: hidden; }
         .island { position: absolute; width: 80px; height: 80px; background-image: linear-gradient(to top, #0ba360 0%, #3cba92 100%); border: 3px solid #1a661a; border-radius: 50% 60% 50% 70% / 60% 50% 70% 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; color: white; text-shadow: 1px 1px 2px rgba(0,0,0,0.5); box-shadow: 3px 5px 15px rgba(0,0,0,0.3); transition: all 0.8s ease; z-index: 10; cursor: pointer; }
@@ -140,7 +145,7 @@
             <h4><서태평양의 항해자들 이용법></h4>
             쿨라는 목걸이(술라바)와 팔찌(음왈리)가 각각 시계방향과 시계 반대방향으로 돌아가는 멜라네시아 섬들 간의 교역입니다.<br><br>
             상단의 <b>[새 바다 만들기]</b>를 눌러 고유한 링크를 친구들과 공유해 보세요.<br><br>
-            새로운 섬을 발견하면 새 섬이 생성되고, 특정한 섬을 침몰시킬 수 있습니다. <b>지도 위 섬을 클릭하면 이름을 수정할 수 있으며,</b> [기록]을 클릭하면 섬 침몰 기록을 볼 수 있습니다.<br><br>
+            새로운 섬을 발견하면 새 섬이 생성되고, 특정한 섬을 침몰시킬 수 있습니다. <b>지도 위 섬을 클릭하면 이름을 수정할 수 있으며,</b> [기록]을 클릭하면 섬 침몰 기록을 보거나 <b>섬을 다시 살려낼 수 있습니다.</b><br><br>
             술라바와 음왈리의 이름은 언제든 변경할 수 있습니다. <b>이름 옆의 드롭다운으로 물건의 현재 위치를 이동시킬 수 있으며,</b> 각각 [출발]을 누르면 항해를 시작합니다. 되돌리기 버튼을 누르면 직전에 있던 섬으로 물건들이 돌아갑니다.
         </div>
         <button class="btn-manual" onclick="toggleManual()">매뉴얼 📖</button>
@@ -239,7 +244,6 @@
                 islands = data.islands || [];
                 sunkenIslands = data.sunkenIslands || [];
                 state = data.state || { cw: { pos: 0, log: [], name: '술라바' }, ccw: { pos: 1, log: [], name: '음왈리' } };
-                
                 updateLocalHistory(currentId, projectName);
             } else {
                 alert("삭제되었거나 존재하지 않는 바다입니다! 로비로 이동합니다.");
@@ -343,11 +347,10 @@
         }
     };
 
-    // --- ⚓️ 물건의 현재 위치 수동 지정 ---
     window.setItemPos = (key, idx) => {
         state[key].pos = parseInt(idx);
         window.saveToDB();
-        render(); // 위치 변경 후 즉시 렌더링
+        render(); 
     };
 
     function updateDimensions() {
@@ -413,11 +416,7 @@
 
     function updateDropdowns() {
         const optionsHtml = islands.map((is, i) => `<option value="${i}">${is.name}</option>`).join('');
-        
-        // 침몰 셀렉트 박스
         document.getElementById('island-to-sink').innerHTML = optionsHtml;
-        
-        // 위치 지정 셀렉트 박스
         const posCw = document.getElementById('pos-cw');
         const posCcw = document.getElementById('pos-ccw');
         if(posCw) { posCw.innerHTML = optionsHtml; if(islands[state.cw.pos]) posCw.value = state.cw.pos; }
@@ -503,10 +502,31 @@
         window.saveToDB(); render();
     };
 
+    // --- ♻️ 섬 살리기 기능 ---
+    window.reviveIsland = (index) => {
+        const revived = sunkenIslands.splice(index, 1)[0];
+        islands.push({ name: revived.name }); // 새 활성 섬으로 추가 (위치는 자동 재계산됨)
+        window.saveToDB();
+        render();
+        window.updateSinkModalContent(); // 모달 내용 즉시 갱신
+    };
+
+    window.updateSinkModalContent = () => {
+        const list = document.getElementById('sink-list');
+        if (sunkenIslands.length === 0) {
+            list.innerHTML = "<li style='border:none; text-align:center;'>기록 없음</li>";
+        } else {
+            list.innerHTML = sunkenIslands.map((s, i) => 
+                `<li>🌊 ${s.name} <span style="font-size:10px; color:#999;">(${s.time})</span>
+                 <button class="btn-revive" onclick="reviveIsland(${i})">살리기 ♻️</button></li>`
+            ).join('');
+        }
+    };
+
     window.toggleSinkRecord = () => {
         const m = document.getElementById('sink-modal'), o = document.getElementById('modal-overlay');
         const isShow = m.style.display === 'block';
-        if(!isShow) document.getElementById('sink-list').innerHTML = sunkenIslands.map(s => `<li>${s.name} <span style="font-size:10px; color:#999;">(${s.time})</span></li>`).join('') || "기록 없음";
+        if(!isShow) window.updateSinkModalContent();
         m.style.display = o.style.display = isShow ? 'none' : 'block';
     };
 
