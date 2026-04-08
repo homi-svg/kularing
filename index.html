@@ -18,7 +18,7 @@
         #paths-svg { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 5; }
         .route-line { fill: none; stroke: rgba(255, 255, 255, 0.6); stroke-width: 2; stroke-dasharray: 8 6; transition: all 0.8s ease; }
 
-        /* --- 🏝️ 심플 랜딩/로비 패널 롤백 --- */
+        /* --- 🏝️ 심플 랜딩/로비 패널 --- */
         #landing-screen { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.3); backdrop-filter: blur(8px); z-index: 10000; display: none; flex-direction: column; justify-content: center; align-items: center; color: white; }
         .landing-box { background: rgba(255, 255, 255, 0.95); padding: 40px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); text-align: center; color: #333; max-width: 400px; width: 85%; }
         .landing-box h1 { margin-top: 0; color: #00f2fe; font-size: 28px; text-shadow: 1px 1px 2px rgba(0,0,0,0.1); font-weight: 700; }
@@ -40,11 +40,11 @@
         #project-manager h3 { margin: 0; font-size: 14px; color: #1565c0; border-bottom: 1px solid #ddd; padding-bottom: 5px; }
         
         #control-panel { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); padding: 12px 15px; background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(5px); border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); display: flex; flex-direction: column; gap: 8px; z-index: 100; color: #333; min-width: 360px; }
-        .log-panel { position: absolute; top: 20px; width: 150px; background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(5px); border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); padding: 12px; display: flex; flex-direction: column; gap: 8px; z-index: 100; color: #333; }
+        .log-panel { position: absolute; top: 20px; width: 170px; background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(5px); border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); padding: 12px; display: flex; flex-direction: column; gap: 8px; z-index: 100; color: #333; }
         #log-panel-cw { left: 15px; border-top: 4px solid #ff0844; }
         #log-panel-ccw { right: 15px; border-top: 4px solid #999; }
         .log-panel h3 { margin: 0; font-size: 14px; text-align: center; border-bottom: 2px solid #ddd; padding-bottom: 6px; }
-        .log-content { font-size: 11px; line-height: 1.5; background: rgba(255, 255, 255, 0.6); padding: 8px; border-radius: 6px; height: 120px; overflow-y: auto; border: 1px inset #ddd; word-break: keep-all; }
+        .log-content { font-size: 11px; line-height: 1.6; background: rgba(255, 255, 255, 0.6); padding: 8px; border-radius: 6px; height: 130px; overflow-y: auto; border: 1px inset #ddd; word-break: keep-all; font-family: 'Noto Sans KR', sans-serif; }
         .log-content::-webkit-scrollbar { width: 5px; }
         .log-content::-webkit-scrollbar-thumb { background: #bbb; border-radius: 3px; }
 
@@ -81,6 +81,7 @@
 
         #ocean-map { position: relative; width: 100vw; height: 100vh; z-index: 10; overflow: hidden; }
         
+        /* 🗺️ 맵 아이템 기본 사이즈 (데스크톱) */
         .island { position: absolute; width: 80px; height: 80px; background-image: linear-gradient(to top, #0ba360 0%, #3cba92 100%); border: 3px solid #1a661a; border-radius: 50% 60% 50% 70% / 60% 50% 70% 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; color: white; text-shadow: 1px 1px 2px rgba(0,0,0,0.5); box-shadow: 3px 5px 15px rgba(0,0,0,0.3); z-index: 10; cursor: pointer; transition: all 0.8s ease; }
         .island:hover { transform: scale(1.05); } 
         
@@ -94,14 +95,20 @@
 
         #loading-screen { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #00f2fe; z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; color: white; font-weight: bold; font-size: 20px; transition: opacity 0.5s; }
 
+        /* 📱 모바일 환경 (화면이 작아지면 아이콘 크기도 작게!) */
         @media (max-width: 768px) {
             #project-manager { top: 0; left: 0; bottom: auto; width: 100vw; border-radius: 0 0 15px 15px; flex-direction: row; flex-wrap: wrap; justify-content: space-between; align-items: center; padding: 10px; box-sizing: border-box; }
             #project-manager h3 { display: none; }
             #control-panel { top: auto; bottom: 0; left: 0; transform: none; width: 100vw; border-radius: 15px 15px 0 0; box-sizing: border-box; min-width: 100vw; padding: 12px; padding-bottom: 25px; }
-            .log-panel { top: 70px; width: 120px; padding: 8px; box-sizing: border-box; }
-            .log-content { height: 80px; } 
+            .log-panel { top: 70px; width: 130px; padding: 8px; box-sizing: border-box; }
+            .log-content { height: 90px; font-size: 10px; } 
             #manual-container { bottom: 180px; right: 10px; }
             .control-group input[type="text"], .control-group select { flex-grow: 1; max-width: 75px; }
+            
+            /* 모바일용 아이콘 축소 */
+            .island, .sunken-island { width: 50px; height: 50px; font-size: 11px; box-shadow: 2px 3px 8px rgba(0,0,0,0.3); }
+            .boat { width: 35px; height: 24px; }
+            .boat-name { font-size: 8px; }
         }
     </style>
 </head>
@@ -115,7 +122,6 @@
         document.getElementById('loading-screen').innerHTML = `<div style="color:#c62828; background:white; padding:20px; border-radius:10px; font-size:14px; text-align:left; max-width:80%; box-shadow:0 5px 15px rgba(0,0,0,0.3);"><b>🚨 네트워크 통신 에러</b><br>파이어베이스 접속 권한이나 인터넷 연결을 확인하세요.<br>(${e.reason})</div>`;
     });
     
-    // 비상 탈출구
     setTimeout(function() {
         const ls = document.getElementById('loading-screen');
         if(ls && ls.style.display !== 'none') {
@@ -267,16 +273,29 @@
 
     let projectName = "이름 없는 바다";
     let islands = [], sunkenIslands = [], state = {};
+    
+    // 📱 반응형 크기 변수 (업데이트됨)
     let centerX, centerY, baseRadiusX, baseRadiusY;
+    let islandRadius = 40, boatWidth = 50, boatHeight = 35, boatOffset = 45;
+    
     let currentId = new URLSearchParams(window.location.search).get('id');
+
+    // ⏱️ 시간 포맷 헬퍼 함수
+    function getLogTime() {
+        const now = new Date();
+        const MM = String(now.getMonth() + 1).padStart(2, '0');
+        const DD = String(now.getDate()).padStart(2, '0');
+        const HH = String(now.getHours()).padStart(2, '0');
+        const mm = String(now.getMinutes()).padStart(2, '0');
+        const ss = String(now.getSeconds()).padStart(2, '0');
+        return `${MM}/${DD} ${HH}:${mm}:${ss}`;
+    }
 
     async function initDB() {
         if (!currentId) {
             document.getElementById('loading-screen').style.display = 'none';
             document.getElementById('landing-screen').style.display = 'flex';
-            document.getElementById('new-kula-name').focus();
             
-            // localStorage 안전장치 탑재
             try {
                 let history = JSON.parse(localStorage.getItem('kula_history') || '[]');
                 if (history.length > 0) {
@@ -319,7 +338,6 @@
         setTimeout(() => document.getElementById('loading-screen').style.display = 'none', 500);
         document.getElementById('landing-screen').style.display = 'none';
         document.getElementById('app-ui').style.display = 'block';
-        document.getElementById('ocean-map').style.display = 'block';
         
         document.getElementById('input-cw').value = state.cw.name;
         document.getElementById('input-ccw').value = state.ccw.name;
@@ -340,7 +358,7 @@
             state: { cw: { pos: 0, log: [], name: '술라바' }, ccw: { pos: 1, log: [], name: '음왈리' } }
         };
         
-        document.querySelector('.landing-box').innerHTML = '<h2 style="color:#00f2fe;">바다를 창조하는 중... 🌊</h2>';
+        document.querySelector('.landing-box').innerHTML = '<h2 style="color:#00f2fe; font-family:\'Noto Sans KR\';">바다를 창조하는 중... 🌊</h2>';
         await setDoc(doc(db, "projects", newId), initialData);
         window.location.href = `?id=${newId}`;
     };
@@ -446,9 +464,13 @@
         if (newName && newName !== currentName) {
             ['cw', 'ccw'].forEach(k => {
                 state[k].log = state[k].log.map(entry => {
-                    if (entry === currentName) return newName;
-                    if (entry === `[🚨 긴급 대피] ${currentName}`) return `[🚨 긴급 대피] ${newName}`;
-                    return entry;
+                    let entryName = typeof entry === 'string' ? entry : entry.name;
+                    
+                    if (entryName === currentName) entryName = newName;
+                    else if (entryName === `[🚨 긴급 대피] ${currentName}`) entryName = `[🚨 긴급 대피] ${newName}`;
+                    
+                    if (typeof entry === 'string') return entryName;
+                    return { name: entryName, time: entry.time };
                 });
             });
             islands[idx].name = newName;
@@ -490,13 +512,23 @@
         render(); 
     };
 
+    // 📱 화면 크기에 맞춰 섬/배 크기 자동 조절 업데이트
     function updateDimensions() {
         const isMobile = window.innerWidth <= 768;
-        const pTop = 180, pBottom = 180, pSide = isMobile ? 60 : 200;
+        
+        islandRadius = isMobile ? 25 : 40; // 50px vs 80px의 절반
+        boatWidth = isMobile ? 35 : 50;
+        boatHeight = isMobile ? 24 : 35;
+        boatOffset = isMobile ? 32 : 45; // 섬에서 얼마나 떨어져서 정박할지
+
+        const pTop = isMobile ? 180 : 180;
+        const pBottom = isMobile ? 200 : 180; // 모바일 하단 조종 패널 고려 여백
+        const pSide = isMobile ? 40 : 200;
+        
         centerX = pSide + ((window.innerWidth - pSide * 2) / 2);
         centerY = pTop + ((window.innerHeight - pTop - pBottom) / 2);
-        baseRadiusX = Math.max((window.innerWidth - pSide * 2) * 0.4, 80);
-        baseRadiusY = Math.max((window.innerHeight - pTop - pBottom) * 0.4, 80);
+        baseRadiusX = Math.max((window.innerWidth - pSide * 2) * 0.45, 60);
+        baseRadiusY = Math.max((window.innerHeight - pTop - pBottom) * 0.4, 60);
     }
 
     function getIslandPos(index, totalCount) {
@@ -513,7 +545,7 @@
         sunkenIslands.forEach(sunk => {
             let div = document.createElement('div');
             div.className = 'sunken-island'; div.innerText = sunk.name;
-            div.style.left = `${sunk.x - 40}px`; div.style.top = `${sunk.y - 40}px`;
+            div.style.left = `${sunk.x - islandRadius}px`; div.style.top = `${sunk.y - islandRadius}px`;
             map.appendChild(div);
         });
 
@@ -526,8 +558,10 @@
             }
             div.innerText = is.name;
             const pos = getIslandPos(i, islands.length);
-            div.style.left = `${pos.x - 40}px`; 
-            div.style.top = `${pos.y - 40}px`;
+            
+            // 📱 동적 크기를 반영하여 정확히 중앙에 배치
+            div.style.left = `${pos.x - islandRadius}px`; 
+            div.style.top = `${pos.y - islandRadius}px`;
             is.currX = pos.x; is.currY = pos.y;
         });
         
@@ -548,7 +582,10 @@
             div.querySelector('.boat-name').innerText = state[key].name;
             if(movingKey !== key) {
                 const is = islands[state[key].pos] || {currX: centerX, currY: centerY};
-                div.style.left = `${is.currX - 25}px`; div.style.top = `${is.currY + (key === 'cw' ? -45 : 45) - 17.5}px`; div.style.transition = 'all 1s';
+                // 📱 배 동적 크기 배치
+                div.style.left = `${is.currX - boatWidth/2}px`; 
+                div.style.top = `${is.currY + (key === 'cw' ? -boatOffset : boatOffset) - boatHeight/2}px`; 
+                div.style.transition = 'all 1s';
             }
         });
         updateLogPanel();
@@ -572,7 +609,7 @@
     window.startVoyage = (key) => {
         if(islands.length < 2) return;
         const prev = state[key].pos;
-        state[key].log.push(islands[prev].name);
+        state[key].log.push({ name: islands[prev].name, time: getLogTime() });
         state[key].pos = key === 'cw' ? (prev + 1) % islands.length : (prev - 1 + islands.length) % islands.length;
         window.saveToDB(); animate(key, prev, state[key].pos);
     };
@@ -580,8 +617,11 @@
     window.undoVoyage = (key) => {
         if(state[key].log.length === 0) return;
         const last = state[key].log.pop();
-        const target = islands.findIndex(is => is.name === last.replace('[🚨 긴급 대피] ', ''));
+        const lastName = typeof last === 'string' ? last : last.name;
+        
+        const target = islands.findIndex(is => is.name === lastName.replace('[🚨 긴급 대피] ', ''));
         if(target === -1) return alert("섬이 침몰했습니다.");
+        
         const current = state[key].pos;
         state[key].pos = target;
         window.saveToDB(); animate(key, current, target);
@@ -591,14 +631,16 @@
         const el = document.getElementById(`boat-${key}`);
         const startIs = islands[startIdx], endIs = islands[endIdx];
         if(!startIs || !endIs) return render();
-        const offY = key === 'cw' ? -45 : 45;
+        
+        const offY = key === 'cw' ? -boatOffset : boatOffset;
         const startTime = performance.now();
         el.style.transition = 'none';
+        
         function step(now) {
             const progress = Math.min((now - startTime) / 1200, 1);
             const p = progress < 0.5 ? 2 * progress * progress : -1 + (4 - 2 * progress) * progress;
-            el.style.left = `${((1-p)*startIs.currX + p*endIs.currX) - 25}px`;
-            el.style.top = `${((1-p)*startIs.currY + p*endIs.currY) + offY - 17.5}px`;
+            el.style.left = `${((1-p)*startIs.currX + p*endIs.currX) - boatWidth/2}px`;
+            el.style.top = `${((1-p)*startIs.currY + p*endIs.currY) + offY - boatHeight/2}px`;
             if(progress < 1) requestAnimationFrame(step); else render();
         }
         requestAnimationFrame(step);
@@ -614,7 +656,13 @@
         ['cw', 'ccw'].forEach(k => {
             const div = document.getElementById(`log-${k}-content`);
             const curr = islands[state[k].pos] ? islands[state[k].pos].name : "...";
-            div.innerHTML = (state[k].log.length ? state[k].log.join('<br>➔ ') + '<br>➔ ' : '') + `<b>📍 [현재] ${curr}</b>`;
+            
+            const logHtml = state[k].log.map(entry => {
+                if (typeof entry === 'string') return entry;
+                return `${entry.name} <span style="font-size:9px; color:#666;">[${entry.time}]</span>`;
+            }).join('<br>➔ ');
+            
+            div.innerHTML = (logHtml ? logHtml + '<br>➔ ' : '') + `<b>📍 [현재] ${curr}</b> <span style="font-size:9px; color:#0ba360;">[정박 중]</span>`;
             div.scrollTop = div.scrollHeight;
         });
     }
@@ -634,12 +682,14 @@
             if(state[k].pos === idx) {
                 let targetPos = 0;
                 if (state[k].log.length > 0) {
-                    const lastIslandName = state[k].log[state[k].log.length - 1].replace('[🚨 긴급 대피] ', '');
+                    const lastEntry = state[k].log[state[k].log.length - 1];
+                    const lastIslandName = (typeof lastEntry === 'string' ? lastEntry : lastEntry.name).replace('[🚨 긴급 대피] ', '');
+                    
                     const foundIndex = islands.findIndex(is => is.name === lastIslandName);
                     if (foundIndex !== -1) targetPos = foundIndex;
                 }
                 state[k].pos = targetPos;
-                state[k].log.push(`[🚨 긴급 대피] ${islands[targetPos].name}`);
+                state[k].log.push({ name: `[🚨 긴급 대피] ${islands[targetPos].name}`, time: getLogTime() });
             } else if(state[k].pos > idx) {
                 state[k].pos--;
             }
